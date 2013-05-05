@@ -1,0 +1,6 @@
+[submodule "deps/filesystems"]
+	path = deps/filesystems
+	url = https://github.com/osxfuse/filesystems
+[submodule "deps/sleuthkit"]
+	path = deps/sleuthkit
+	url = https://github.com/sleuthkit/sleuthkit.git
