@@ -21,15 +21,15 @@ The interface should look like this, for a disk image with a partition at 63 sec
 Related projects
 ----------------
 
-From poking around on Github, I found these projects do pretty much the same thing, though with some underlying technical decisions I'd like to make differently:
+From poking around on Github, I found these projects do close to the same thing, though with some underlying technical decisions I'd like to make differently:
 
 * https://github.com/andreax79/partsfs - Basically the project I want to write, except it's a Linux kernel module, and uses its own partition table parsers.  I'd like FUSE for use in other OS's.
-* http://code.google.com/p/libewf/wiki/Mounting - Oh. `ewfmount` appears to do the job, albeit without TSK's partition table parsers.  That would be a strange compilation order, since TSK optionally uses libewf libraries in its build.
+* http://code.google.com/p/libewf/wiki/Mounting - `ewfmount` presents a whole "raw" disk image stored in E01 format, but does no interpretation of the image's contents.
 
 
 Project status
 --------------
 
-This was to be a weekend hacking project.  However, I appear to have had a search engine oversight, and found pretty much this exact project already implemented: `ewfmount`.  Next up is testing ewfmount to see if the partition files it presents are directly usable with forensic utilities, or if those are also copy-conveniences.
+This is a weekend hacking project.  If I have had a search engine oversight, and somebody finds pretty much this exact project already implemented, that would be good to hear.
 
 Other help/pointers/noticed-impending-gotcha's welcome.
