@@ -7,5 +7,6 @@ Run the `/deps/install-dependent_packages` build appropriate for your system.  T
     ./bootstrap.sh.
     cd src
     make
+    make check
 
 Other functionality coming soon.
