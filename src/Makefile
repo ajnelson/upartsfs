@@ -1,11 +1,12 @@
+CC := clang
 CFLAGS := -Wall $(shell pkg-config fuse --cflags)
 LDFLAGS := $(shell pkg-config fuse --libs)
 
-targets = fusexmp fusexmp_fh hello hello_ll null
+targets = fusexmp
 
 all: $(targets)
 
-fusexmp_fh: fusexmp_fh.c
+fusexmp: fusexmp.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -lulockmgr $< -o $@
 
 clean:
