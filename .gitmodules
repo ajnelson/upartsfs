@@ -4,3 +4,6 @@
 [submodule "deps/sleuthkit"]
 	path = deps/sleuthkit
 	url = https://github.com/sleuthkit/sleuthkit.git
+[submodule "deps/fuse"]
+	path = deps/fuse
+	url = https://github.com/ajnelson/fuse.git
