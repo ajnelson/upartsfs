@@ -4,8 +4,10 @@ set -e
 set -x
 
 #Assure FUSE is checked out
-git submodule init deps/fuse
-git submodule update deps/fuse
+if [ ! -r "deps/fuse/include/fuse.h" ]; then
+  git submodule init deps/fuse
+  git submodule update deps/fuse
+fi
 
 #Assure TSK is built
 if [ ! -r "deps/sleuthkit/build/include/tsk3/libtsk.h" ]; then
