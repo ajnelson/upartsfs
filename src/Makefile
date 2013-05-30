@@ -11,7 +11,7 @@ fusexmp: fusexmp.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -lulockmgr $< -o $@
 
 upartsfs: upartsfs.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -I $(topsrcdir)/deps/sleuthkit/build/include -lulockmgr $< -o $@
+	$(CC) -v $(CFLAGS) $(LDFLAGS) -I $(topsrcdir)/deps/sleuthkit -I $(topsrcdir)/deps/sleuthkit/build/include -lulockmgr $< -o $@
 
 check: upartsfs
 	mkdir test

@@ -34,6 +34,11 @@
 #endif
 
 #include <tsk3/libtsk.h>
+#include "tsk3/tsk_tools_i.h"
+
+/* AJN TODO Gross hack. */
+int global_argc;
+char **global_argv;
 
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
@@ -69,16 +74,49 @@ static int xmp_readlink(const char *path, char *buf, size_t size)
 	return 0;
 }
 
+static TSK_WALK_RET_ENUM part_act(TSK_VS_INFO * vs, const TSK_VS_PART_INFO * part, void *ptr)
+{
+	return TSK_WALK_CONT;
+}
 
 static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		       off_t offset, struct fuse_file_info *fi)
 {
+	TSK_VS_INFO *vs;
+	int ch;
+	TSK_OFF_T imgaddr = 0;
+	int flags = 0;
+	TSK_IMG_TYPE_ENUM imgtype = TSK_IMG_TYPE_DETECT;
+	TSK_VS_TYPE_ENUM vstype = TSK_VS_TYPE_DETECT;
+	TSK_IMG_INFO *img;
+	unsigned int ssize = 0; /* AJN TODO Wait, is this the same type as elsewhere? */
+
 	DIR *dp;
 	struct dirent *de;
 
 	(void) offset;
 	(void) fi;
 
+	while ((ch = GETOPT(global_argc, global_argv, _TSK_T("aAb:Bi:mMo:rt:vV"))) > 0) {
+		/* AJN TODO Nop for now. Just want OPTIND to be set.*/
+	}
+	img = tsk_img_open(global_argc - OPTIND, &global_argv[OPTIND], imgtype, ssize);
+
+	vs = tsk_vs_open(img, imgaddr * img->sector_size, vstype);
+	if (vs == NULL) {
+		tsk_error_print(stderr);
+		if (tsk_error_get_errno() == TSK_ERR_VS_UNSUPTYPE)
+			tsk_vs_type_print(stderr);
+		tsk_img_close(img);
+		exit(1);
+	}
+	if (tsk_vs_part_walk(vs, 0, vs->part_count - 1, (TSK_VS_PART_FLAG_ENUM) flags, part_act, NULL)) {
+		tsk_error_print(stderr);
+		tsk_vs_close(vs);
+		tsk_img_close(img);
+		exit(1);
+	}
+	/* */
 	dp = opendir(path);
 	if (dp == NULL)
 		return -errno;
@@ -396,6 +434,8 @@ static struct fuse_operations upartsfs_oper = {
 
 int main(int argc, char *argv[])
 {
+	global_argc = argc;
+	global_argv = argv;
 	umask(0);
 	return fuse_main(argc, argv, &upartsfs_oper, NULL);
 }
