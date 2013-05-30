@@ -20,4 +20,6 @@ if [ ! -r "deps/sleuthkit/build/include/tsk3/libtsk.h" ]; then
 fi
 
 libtoolize -c || glibtoolize -c
+aclocal
+automake --foreign --add-missing --copy
 autoreconf -i
