@@ -4,3 +4,5 @@ LDFLAGS += -static
 
 bin_PROGRAMS = upartsfs
 upartsfs_SOURCES = upartsfs.c
+
+TESTS = test.sh
