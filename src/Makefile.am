@@ -5,4 +5,5 @@ LDFLAGS += -static
 bin_PROGRAMS = upartsfs
 upartsfs_SOURCES = upartsfs.c
 
-TESTS = test.sh
+TESTS = test_mount.sh
+#TODO Add test_readdir.sh
