@@ -8,7 +8,7 @@ git submodule init deps/fuse
 git submodule update deps/fuse
 
 #Assure TSK is built
-if [ ! -r "deps/sleuthkit/build/include/libtsk.h" ]; then
+if [ ! -r "deps/sleuthkit/build/include/tsk3/libtsk.h" ]; then
   echo "Note: Building TSK..." >&2
   git submodule init deps/sleuthkit
   git submodule update deps/sleuthkit
@@ -16,3 +16,6 @@ if [ ! -r "deps/sleuthkit/build/include/libtsk.h" ]; then
   ./build_submodules.sh
   popd
 fi
+
+libtoolize -c || glibtoolize -c
+autoreconf -i
