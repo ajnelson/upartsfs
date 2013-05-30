@@ -21,6 +21,14 @@ AC_CHECK_LIB([ulockmgr], [main])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h string.h sys/time.h unistd.h])
+PKG_CHECK_MODULES(
+  [FUSE],
+  [fuse],
+  ,
+  AC_MSG_ERROR([fuse not found.])
+)
+AC_SUBST(FUSE_LIBS)
+AC_SUBST(FUSE_CFLAGS)
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_UID_T
