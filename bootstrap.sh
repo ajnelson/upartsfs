@@ -21,5 +21,6 @@ fi
 
 libtoolize -c || glibtoolize -c
 aclocal
+autoheader
 automake --foreign --add-missing --copy
 autoreconf -i
