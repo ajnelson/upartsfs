@@ -7,4 +7,5 @@ set -x
 ./configure --prefix=$PWD/build
 make
 make check
+make check-valgrind
 make install

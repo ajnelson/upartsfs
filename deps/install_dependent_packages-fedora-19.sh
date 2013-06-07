@@ -9,4 +9,5 @@ sudo yum install \
   clang \
   fuse-devel \
   gcc-c++ \
-  libtool
+  libtool \
+  valgrind

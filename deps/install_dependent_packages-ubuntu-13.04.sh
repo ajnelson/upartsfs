@@ -8,4 +8,5 @@ sudo apt-get install \
   automake \
   clang \
   libtool \
-  libfuse-dev
+  libfuse-dev \
+  valgrind
