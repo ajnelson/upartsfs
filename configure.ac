@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([upartsfs], [0.0.0], [ajnelson@cs.ucsc.edu])
+AC_INIT([upartsfs], [0.0.0], [ajnelson@acm.org])
 AC_CONFIG_SRCDIR([src/upartsfs.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign])
