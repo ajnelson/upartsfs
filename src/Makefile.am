@@ -8,11 +8,12 @@ upartsfs_SOURCES = upartsfs.c upartsfs.h
 
 TESTS = \
   test_mount_fusexmp.sh \
-  test_readdir_fusexmp.sh
-# test_mount_upartsfs.sh \
+  test_readdir_fusexmp.sh \
+  test_mount_upartsfs.sh
 # test_readdir_upartsfs.sh
 #TODO upartsfs tests
 
 check-valgrind:
 	./test_valgrind_mount_fusexmp.sh
 	./test_valgrind_readdir_fusexmp.sh
+	./test_valgrind_mount_upartsfs.sh

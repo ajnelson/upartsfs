@@ -9,10 +9,6 @@ if [ -z "$IMAGEFILE" ]; then
 fi
 
 mkdir test
-./upartsfs "$IMAGEFILE" test
-ls test
-ls -a test
-ls -al test
-ls -al test/by_index
+valgrind --leak-check=full ./upartsfs "$IMAGEFILE" test
 sleep 3; fusermount -u test
 rmdir test
