@@ -11,5 +11,7 @@ fi
 mkdir test
 ./upartsfs "$IMAGEFILE" test
 ls test
+ls -a test
+ls -al test
 sleep 3; fusermount -u test
 rmdir test

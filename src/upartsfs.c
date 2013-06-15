@@ -102,26 +102,30 @@ static struct UPARTS_DE_INFO * last_de_info(const struct UPARTS_DE_INFO * ude, u
 
 static TSK_WALK_RET_ENUM populate_uparts_by_index(TSK_VS_INFO * vs, const TSK_VS_PART_INFO * part, void *ptr)
 {
+	uint64_t ssize = vs->block_size;
 	struct UPARTS_EXTRA * uparts_extra = (struct UPARTS_EXTRA *) ptr;
-	struct UPARTS_DE_INFO * sbi_tail;
+	struct UPARTS_DE_INFO * sbi_tail = NULL;
 	struct UPARTS_DE_INFO * new_tail;
 	uint8_t old_tail_position = 0;
+	uint8_t new_tail_position = 0;
 	int rc;
 
-	/* Guarantee list is initialized */
+	/* Get tail of list, creating list if need be */
 	if (uparts_extra->stats_by_index == NULL) {
 		uparts_extra->stats_by_index = (struct UPARTS_DE_INFO *) tsk_malloc(sizeof(struct UPARTS_DE_INFO));
 		if (uparts_extra->stats_by_index == NULL) {
 			tsk_error_print(stderr);
 			return TSK_WALK_ERROR;
 		}
-	}
-	
-	/* Fetch list tail */
-	sbi_tail = last_de_info(uparts_extra->stats_by_index, &old_tail_position);
-	if (sbi_tail == NULL) {
-		/* TODO Describe error */
-		return TSK_WALK_ERROR;
+		new_tail_position = 0;
+	} else {
+		/* Fetch list tail */
+		sbi_tail = last_de_info(uparts_extra->stats_by_index, &old_tail_position);
+		if (sbi_tail == NULL) {
+			/* TODO Describe error */
+			return TSK_WALK_ERROR;
+		}
+		new_tail_position = old_tail_position + 1;
 	}
 
 	/* Allocate new list tail */
@@ -132,8 +136,8 @@ static TSK_WALK_RET_ENUM populate_uparts_by_index(TSK_VS_INFO * vs, const TSK_VS
 	}
 
 	/* Populate new list tail data */
-	new_tail->encounter_order = old_tail_position + 1;
-	rc = snprintf(new_tail->name, UPARTS_NAME_LENGTH, "%" PRIu8, new_tail->encounter_order);
+	new_tail->encounter_order = new_tail_position;
+	rc = snprintf(new_tail->name, UPARTS_NAME_LENGTH, "%" PRIu8, new_tail_position);
 	if (rc < 0) {
 		/* TODO Describe error */
 		fprintf(stderr, "populate_uparts_by_index: snprintf error");
@@ -141,15 +145,17 @@ static TSK_WALK_RET_ENUM populate_uparts_by_index(TSK_VS_INFO * vs, const TSK_VS
 		return TSK_WALK_ERROR;
 	}
 	/* TODO Fill stat struct of new tail*/
-	/* TODO Get ssize from vs or img_info */
-	uint64_t ssize = 512;
 	new_tail->offset = part->start * ssize; 
 	new_tail->st.st_size = part->len * ssize;
 	new_tail->st.st_ino = 22; /* TODO Compact partition offset into ino_t */
 
 	/* Append new tail to list */
-	new_tail->prev = sbi_tail;
-	sbi_tail->next = new_tail;
+	if (sbi_tail) {
+		new_tail->prev = sbi_tail;
+		sbi_tail->next = new_tail;
+	} else {
+		sbi_tail = new_tail;
+	}
 
 	return TSK_WALK_CONT;
 }
@@ -157,6 +163,40 @@ static TSK_WALK_RET_ENUM populate_uparts_by_index(TSK_VS_INFO * vs, const TSK_VS
 static int uparts_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		       off_t offset, struct fuse_file_info *fi)
 {
+	struct UPARTS_DE_INFO *ude = NULL;
+	if (uparts_extra == NULL) {
+		fprintf(stderr, "uparts_readdir: uparts_extra is null.\n");
+		return -EIO;
+	}
+
+	/* Select list for populating directory */
+	if (! strncmp(path, "/", 1)) {
+		/* (The root directory isn't terribly dynamic) */
+	       	filler(buf, ".", NULL, 0);
+	       	filler(buf, "..", NULL, 0);
+		filler(buf, "by_offset", NULL, 0); /*TODO Specify these are directories */
+		filler(buf, "in_order", NULL, 0);
+		return 0;
+	} else if (! strncmp(path, "/by_offset", 10)) {
+		ude = uparts_extra->stats_by_offset;
+	} else if (! strncmp(path, "/in_order", 9)) {
+		ude = uparts_extra->stats_by_index;
+	} else {
+		return -ENOENT;
+	}
+
+	/* Populate directory */
+       	filler(buf, ".", NULL, 0);
+       	filler(buf, "..", NULL, 0);
+	for (ude;
+	     ude != NULL && ude->next != NULL;
+	     ude = ude->next) {
+		if (filler(buf, ude->name, &(ude->st), 0))
+			break;
+	}
+
+	return 0;
+
 	DIR *dp;
 	struct dirent *de;
 
@@ -498,8 +538,9 @@ int free_uparts_extra(struct UPARTS_EXTRA * uparts_extra)
 	return 0;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv1[])
 {
+	TSK_TCHAR **argv;
 	TSK_VS_INFO *vs;
 	int ch;
 	TSK_OFF_T imgaddr = 0;
@@ -508,10 +549,20 @@ int main(int argc, char *argv[])
 	TSK_VS_TYPE_ENUM vstype = TSK_VS_TYPE_DETECT;
 	TSK_IMG_INFO *img;
 	unsigned int ssize = 0; /* AJN TODO Wait, is this the same type as elsewhere? */
-	struct UPARTS_EXTRA *uparts_extra;
 	struct UPARTS_DE_INFO *ude;
 
-	while ((ch = GETOPT(argc, argv, _TSK_T("aAb:Bi:mMo:rt:vV"))) > 0) {
+#ifdef TSK_WIN32
+	// On Windows, get the wide arguments (mingw doesn't support wmain)
+	argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+	if (argv == NULL) {
+		fprintf(stderr, "Error getting wide arguments\n");
+		exit(1);
+	}
+#else
+	argv = (TSK_TCHAR **) argv1;
+#endif
+
+	while ((ch = GETOPT(argc, argv, _TSK_T("d:"))) > 0) {
 		/* AJN TODO Nop for now. Just want OPTIND to be set.*/
 	}
 
@@ -550,6 +601,9 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	/* Walk in-table-order partition list to generate by-offset partition list */
+	/* TODO */
+
 	/* Debug */
 	fprintf(stderr, "main: Debug: Partitions by index:\n");
 	for (ude = uparts_extra->stats_by_index;
@@ -559,5 +613,19 @@ int main(int argc, char *argv[])
 	}
 
 	umask(0);
-	return fuse_main(argc, argv, &upartsfs_oper, uparts_extra);
+	/* AJN: Just pass last argument to fuse_main for now. */
+	int fuse_argc = 1+1;
+	char **fuse_argv;
+	fuse_argv = (char**) tsk_malloc(fuse_argc * sizeof(char*));
+	if (fuse_argv == NULL) {
+		tsk_error_print(stderr);
+		free_uparts_extra(uparts_extra);
+		tsk_vs_close(vs);
+		tsk_img_close(img);
+		exit(1);
+	}
+	fuse_argv[0] = argv1[0];
+	fuse_argv[1] = argv1[argc-1];
+
+	return fuse_main(fuse_argc, fuse_argv, &upartsfs_oper, uparts_extra);
 }

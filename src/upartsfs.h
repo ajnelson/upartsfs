@@ -40,4 +40,6 @@ struct UPARTS_EXTRA {
 	struct UPARTS_DE_INFO *stats_by_index;
 };
 
+static struct UPARTS_EXTRA *uparts_extra;
+
 #endif //UPARTSFS_H
