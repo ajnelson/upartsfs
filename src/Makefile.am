@@ -4,7 +4,7 @@ LDFLAGS += -static
 
 bin_PROGRAMS = upartsfs fusexmp
 fusexmp_SOURCES = fusexmp.c
-upartsfs_SOURCES = upartsfs.c
+upartsfs_SOURCES = upartsfs.c upartsfs.h
 
 TESTS = \
   test_mount_fusexmp.sh \
