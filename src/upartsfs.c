@@ -96,123 +96,54 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	return 0;
 }
 
-static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
+static int uparts_mknod(const char *path, mode_t mode, dev_t rdev)
 {
-	int res;
-
-	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
-	   is more portable */
-	if (S_ISREG(mode)) {
-		res = open(path, O_CREAT | O_EXCL | O_WRONLY, mode);
-		if (res >= 0)
-			res = close(res);
-	} else if (S_ISFIFO(mode))
-		res = mkfifo(path, mode);
-	else
-		res = mknod(path, mode, rdev);
-	if (res == -1)
-		return -errno;
-
-	return 0;
+	return -EOPNOTSUPP;
 }
 
-static int xmp_mkdir(const char *path, mode_t mode)
+static int uparts_mkdir(const char *path, mode_t mode)
 {
-	int res;
-
-	res = mkdir(path, mode);
-	if (res == -1)
-		return -errno;
-
-	return 0;
+	return -EOPNOTSUPP;
 }
 
-static int xmp_unlink(const char *path)
+static int uparts_unlink(const char *path)
 {
-	int res;
-
-	res = unlink(path);
-	if (res == -1)
-		return -errno;
-
-	return 0;
+	return -EOPNOTSUPP;
 }
 
-static int xmp_rmdir(const char *path)
+static int uparts_rmdir(const char *path)
 {
-	int res;
-
-	res = rmdir(path);
-	if (res == -1)
-		return -errno;
-
-	return 0;
+	return -EOPNOTSUPP;
 }
 
-static int xmp_symlink(const char *from, const char *to)
+static int uparts_symlink(const char *from, const char *to)
 {
-	int res;
-
-	res = symlink(from, to);
-	if (res == -1)
-		return -errno;
-
-	return 0;
+	return -EOPNOTSUPP;
 }
 
-static int xmp_rename(const char *from, const char *to)
+static int uparts_rename(const char *from, const char *to)
 {
-	int res;
-
-	res = rename(from, to);
-	if (res == -1)
-		return -errno;
-
-	return 0;
+	return -EOPNOTSUPP;
 }
 
-static int xmp_link(const char *from, const char *to)
+static int uparts_link(const char *from, const char *to)
 {
-	int res;
-
-	res = link(from, to);
-	if (res == -1)
-		return -errno;
-
-	return 0;
+	return -EOPNOTSUPP;
 }
 
-static int xmp_chmod(const char *path, mode_t mode)
+static int uparts_chmod(const char *path, mode_t mode)
 {
-	int res;
-
-	res = chmod(path, mode);
-	if (res == -1)
-		return -errno;
-
-	return 0;
+	return -EOPNOTSUPP;
 }
 
-static int xmp_chown(const char *path, uid_t uid, gid_t gid)
+static int uparts_chown(const char *path, uid_t uid, gid_t gid)
 {
-	int res;
-
-	res = lchown(path, uid, gid);
-	if (res == -1)
-		return -errno;
-
-	return 0;
+	return -EOPNOTSUPP;
 }
 
-static int xmp_truncate(const char *path, off_t size)
+static int uparts_truncate(const char *path, off_t size)
 {
-	int res;
-
-	res = truncate(path, size);
-	if (res == -1)
-		return -errno;
-
-	return 0;
+	return -EOPNOTSUPP;
 }
 
 #ifdef HAVE_UTIMENSAT
@@ -364,16 +295,16 @@ static struct fuse_operations upartsfs_oper = {
 	.access		= xmp_access,
 	.readlink	= xmp_readlink,
 	.readdir	= xmp_readdir,
-	.mknod		= xmp_mknod,
-	.mkdir		= xmp_mkdir,
-	.symlink	= xmp_symlink,
-	.unlink		= xmp_unlink,
-	.rmdir		= xmp_rmdir,
-	.rename		= xmp_rename,
-	.link		= xmp_link,
-	.chmod		= xmp_chmod,
-	.chown		= xmp_chown,
-	.truncate	= xmp_truncate,
+	.mknod		= uparts_mknod,
+	.mkdir		= uparts_mkdir,
+	.symlink	= uparts_symlink,
+	.unlink		= uparts_unlink,
+	.rmdir		= uparts_rmdir,
+	.rename		= uparts_rename,
+	.link		= uparts_link,
+	.chmod		= uparts_chmod,
+	.chown		= uparts_chown,
+	.truncate	= uparts_truncate,
 #ifdef HAVE_UTIMENSAT
 	.utimens	= xmp_utimens,
 #endif
