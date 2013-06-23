@@ -3,6 +3,8 @@
 set -e
 set -x
 
+source _reset_test.sh
+
 mkdir test
 ./fusexmp test
 ls test

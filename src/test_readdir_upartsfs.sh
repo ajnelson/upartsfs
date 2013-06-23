@@ -3,6 +3,8 @@
 set -e
 set -x
 
+source _reset_test.sh
+
 #Default to using CFREDS Mac image
 if [ -z "$IMAGEFILE" ]; then
   IMAGEFILE=macwd.e01
