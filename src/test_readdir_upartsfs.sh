@@ -3,7 +3,7 @@
 set -e
 set -x
 
-source _reset_test.sh
+. _reset_test.sh
 
 #Default to using CFREDS Mac image
 if [ -z "$IMAGEFILE" ]; then
@@ -15,6 +15,12 @@ mkdir test
 ls test
 ls -a test
 ls -al test
-ls -al test/by_index
+test -d test/in_order
+ls -al test/in_order
+
+test -d test/by_offset
+ls -al test/by_offset
+
+
 sleep 3; fusermount -u test
 rmdir test

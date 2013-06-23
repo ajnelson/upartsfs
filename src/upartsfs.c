@@ -38,15 +38,28 @@
 
 #include "upartsfs.h"
 
-static int xmp_getattr(const char *path, struct stat *stbuf)
+static int uparts_getattr(const char *path, struct stat *stbuf)
 {
-	int res;
+	int res = 0;
 
-	res = lstat(path, stbuf);
-	if (res == -1)
-		return -errno;
+	memset(stbuf, 0, sizeof(struct stat));
+	if (strncmp(path, "/", 2) == 0) {
+		stbuf->st_mode = S_IFDIR | 0755;
+		stbuf->st_nlink = 4;
+	} else if (strncmp(path, "/in_order", 10) == 0) {
+		stbuf->st_mode = S_IFDIR | 0755;
+		stbuf->st_nlink = 2;
+	} else if (strncmp(path, "/by_offset", 11) == 0) {
+		stbuf->st_mode = S_IFDIR | 0755;
+		stbuf->st_nlink = 2;
+	} else if (0) {
+		/* TODO Handle actual partition files */
+		return -ENOTSUP;
+	} else {
+		return -ENOENT;
+	}
 
-	return 0;
+	return res;
 }
 
 static int xmp_access(const char *path, int mask)
@@ -170,16 +183,16 @@ static int uparts_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	}
 
 	/* Select list for populating directory */
-	if (! strncmp(path, "/", 1)) {
+	if (strncmp(path, "/", 2) == 0) {
 		/* (The root directory isn't terribly dynamic) */
 	       	filler(buf, ".", NULL, 0);
 	       	filler(buf, "..", NULL, 0);
 		filler(buf, "by_offset", NULL, 0); /*TODO Specify these are directories */
 		filler(buf, "in_order", NULL, 0);
 		return 0;
-	} else if (! strncmp(path, "/by_offset", 10)) {
+	} else if (strncmp(path, "/by_offset", 11) == 0) {
 		ude = uparts_extra->stats_by_offset;
-	} else if (! strncmp(path, "/in_order", 9)) {
+	} else if (strncmp(path, "/in_order", 10) == 0) {
 		ude = uparts_extra->stats_by_index;
 	} else {
 		return -ENOENT;
@@ -418,7 +431,7 @@ static int xmp_removexattr(const char *path, const char *name)
 #endif /* HAVE_SETXATTR */
 
 static struct fuse_operations upartsfs_oper = {
-	.getattr	= xmp_getattr,
+	.getattr	= uparts_getattr,
 	.access		= xmp_access,
 	.readlink	= xmp_readlink,
 	.readdir	= uparts_readdir,
