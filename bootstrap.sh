@@ -10,7 +10,7 @@ if [ ! -r "deps/fuse/include/fuse.h" ]; then
 fi
 
 #Assure TSK is built
-if [ ! -r "deps/sleuthkit/build/include/tsk3/libtsk.h" ]; then
+if [ ! -r "deps/sleuthkit/build/include/tsk/libtsk.h" ]; then
   echo "Note: Building TSK..." >&2
   git submodule init deps/sleuthkit
   git submodule update deps/sleuthkit

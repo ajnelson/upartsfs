@@ -33,8 +33,8 @@
 #include <sys/xattr.h>
 #endif
 
-#include <tsk3/libtsk.h>
-#include "tsk3/tsk_tools_i.h"
+#include <tsk/libtsk.h>
+#include "tsk/tsk_tools_i.h"
 
 #include "upartsfs.h"
 
