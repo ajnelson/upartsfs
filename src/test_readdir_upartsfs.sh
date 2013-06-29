@@ -3,7 +3,8 @@
 set -e
 set -x
 
-. _reset_test.sh
+source _reset_test.sh
+source _test_lib.sh
 
 #Default to using CFREDS Mac image
 if [ -z "$IMAGEFILE" ]; then
@@ -11,7 +12,7 @@ if [ -z "$IMAGEFILE" ]; then
 fi
 
 mkdir test
-./upartsfs "$IMAGEFILE" test
+${VALGRIND_COMMAND} ./upartsfs "$IMAGEFILE" test
 ls test
 ls -a test
 ls -al test
