@@ -430,7 +430,21 @@ static int xmp_removexattr(const char *path, const char *name)
 }
 #endif /* HAVE_SETXATTR */
 
+static void * uparts_init(struct fuse_conn_info *conn)
+{
+	//Debug fprintf(stderr, "Debug: uparts_init(...)\n");
+	return NULL;
+}
+
+static void uparts_destroy(void * private_data)
+{
+	//Debug fprintf(stderr, "Debug: uparts_destroy(...)\n");
+	return;
+}
+
 static struct fuse_operations upartsfs_oper = {
+	.init		= uparts_init,
+	.destroy	= uparts_destroy,
 	.getattr	= uparts_getattr,
 	.access		= xmp_access,
 	.readlink	= xmp_readlink,
