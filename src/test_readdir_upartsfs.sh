@@ -12,7 +12,7 @@ if [ -z "$IMAGEFILE" ]; then
 fi
 
 mkdir test
-${VALGRIND_COMMAND} ./upartsfs "$IMAGEFILE" test
+${VALGRIND_COMMAND} ./upartsfs test "$IMAGEFILE"
 ls test
 ls -a test
 ls -al test

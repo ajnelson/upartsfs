@@ -482,9 +482,12 @@ int free_uparts_extra(struct UPARTS_EXTRA * uparts_extra)
 	return 0;
 }
 
-int main(int argc, char *argv1[])
+int main(int main_argc, char *main_argv[])
 {
-	TSK_TCHAR **argv;
+	int tsk_argc;
+	TSK_TCHAR **tsk_argv;
+	TSK_TCHAR **tsk_argv_tmp;
+	char * tsk_opts;
 	TSK_VS_INFO *vs;
 	int ch;
 	TSK_OFF_T imgaddr = 0;
@@ -495,27 +498,46 @@ int main(int argc, char *argv1[])
 	unsigned int ssize = 0; /* AJN TODO Wait, is this the same type as elsewhere? */
 	struct UPARTS_DE_INFO *ude;
 
+	/* Pointer acrobatics ensue to split FUSE command line parameters from image file list for TSK */
 #ifdef TSK_WIN32
 	// On Windows, get the wide arguments (mingw doesn't support wmain)
-	argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-	if (argv == NULL) {
+	tsk_argv_tmp = CommandLineToArgvW(GetCommandLineW(), &main_argc);
+	if (tsk_argv_tmp == NULL) {
 		fprintf(stderr, "Error getting wide arguments\n");
 		exit(1);
 	}
 #else
-	argv = (TSK_TCHAR **) argv1;
+	tsk_argv_tmp = (TSK_TCHAR **) main_argv;
 #endif
+	/* Just pass the last argument to TSK for now; some disk images are multi-file */
+	/* TODO This would be better handled with a "--", or getopt parsing out options and the FUSE mount point */
+	tsk_argc = 2;
+	tsk_argv = (TSK_TCHAR **) tsk_malloc(tsk_argc * sizeof(TSK_TCHAR *));
+	if (tsk_argv == NULL) {
+		tsk_error_print(stderr);
+		exit(1);
+	}
+	tsk_argv[0] = tsk_argv_tmp[0];
+	tsk_argv[1] = tsk_argv_tmp[main_argc - 1];
+	//Debug fprintf(stderr, "Debug: image file arguments:\n");
+	//Debug fprintf(stderr, "\t%s\n", tsk_argv[1]);
 
-	while ((ch = GETOPT(argc, argv, _TSK_T("d:"))) > 0) {
+	/* AJN Nothing interesting about these options specified yet... */
+	tsk_opts = "d:";
+	while ((ch = GETOPT(tsk_argc, tsk_argv, _TSK_T(tsk_opts))) > 0) {
 		/* AJN TODO Nop for now. Just want OPTIND to be set.*/
 	}
 
 	/* Open image */
-	img = tsk_img_open(argc - OPTIND - 1, &argv[OPTIND], imgtype, ssize);
+	//Debug fprintf(stderr, "Debug: OPTIND = %" PRIu32 "\n", OPTIND);
+	img = tsk_img_open(tsk_argc - OPTIND, &tsk_argv[OPTIND], imgtype, ssize);
 	if (img == NULL) {
 		tsk_error_print(stderr);
+		free(tsk_argv);
 		exit(1);
 	}
+
+	free(tsk_argv);
 
 	/* Open partition table */
 	vs = tsk_vs_open(img, imgaddr * img->sector_size, vstype);
@@ -557,19 +579,9 @@ int main(int argc, char *argv1[])
 	}
 
 	umask(0);
-	/* AJN: Just pass last argument to fuse_main for now. */
-	int fuse_argc = 1+1;
-	char **fuse_argv;
-	fuse_argv = (char**) tsk_malloc(fuse_argc * sizeof(char*));
-	if (fuse_argv == NULL) {
-		tsk_error_print(stderr);
-		free_uparts_extra(uparts_extra);
-		tsk_vs_close(vs);
-		tsk_img_close(img);
-		exit(1);
-	}
-	fuse_argv[0] = argv1[0];
-	fuse_argv[1] = argv1[argc-1];
+	/* Just pass the arguments less the last to fuse_main for now. */
+	int fuse_argc = main_argc - 1;
+	char **fuse_argv = main_argv;
 
 	return fuse_main(fuse_argc, fuse_argv, &upartsfs_oper, uparts_extra);
 }

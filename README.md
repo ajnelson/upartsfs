@@ -9,13 +9,15 @@ The plan is to modify a simple FUSE example file system to use The Sleuth Kit's 
 
 The interface should look like this, for a disk image with a partition at 63 sectors, and another at 20GiB:
 
-    $ upartsfs disk_image mount_point
+    $ upartsfs mount_point disk_image 
     $ find mount_point | sort
     mount_point/by_offset/21474836480
     mount_point/by_offset/32256
     mount_point/in_order/0
     mount_point/in_order/1
     $ umount mount_point
+
+(The `disk_image` parameter is reversed from the normal `mount` order because some disk images are passed to TSK as multiple files.)
 
 
 Related projects

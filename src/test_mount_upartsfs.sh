@@ -12,6 +12,6 @@ if [ -z "$IMAGEFILE" ]; then
 fi
 
 mkdir test
-${VALGRIND_COMMAND} ./upartsfs "$IMAGEFILE" test
+${VALGRIND_COMMAND} ./upartsfs test "$IMAGEFILE"
 sleep 3; fusermount -u test
 rmdir test
