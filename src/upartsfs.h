@@ -38,6 +38,8 @@ struct UPARTS_DE_INFO {
 struct UPARTS_EXTRA {
 	struct UPARTS_DE_INFO *stats_by_offset;
 	struct UPARTS_DE_INFO *stats_by_index;
+	TSK_IMG_INFO *tsk_img;
+	TSK_VS_INFO *tsk_vs;
 };
 
 static struct UPARTS_EXTRA *uparts_extra;

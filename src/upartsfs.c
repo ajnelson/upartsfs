@@ -87,7 +87,7 @@ static int xmp_readlink(const char *path, char *buf, size_t size)
 
 static struct UPARTS_DE_INFO * last_de_info(const struct UPARTS_DE_INFO * ude, uint8_t * list_position)
 {
-	struct UPARTS_DE_INFO * tail;
+	struct UPARTS_DE_INFO * tail = NULL;
 	uint8_t lp;
 
 	//Debug fprintf(stderr, "last_de_info: ude = %p\n", ude);
@@ -430,15 +430,29 @@ static int xmp_removexattr(const char *path, const char *name)
 }
 #endif /* HAVE_SETXATTR */
 
+/* NB a FUSE-ism: What this function returns becomes context->private_data.  Hence, returning context->private_data is the closest to a nop-implementation. */
 static void * uparts_init(struct fuse_conn_info *conn)
 {
 	//Debug fprintf(stderr, "Debug: uparts_init(...)\n");
-	return NULL;
+
+	//Debug fprintf(stderr, "Debug: uparts_init: Getting context...\n");
+	struct fuse_context * context = fuse_get_context();
+	//Debug fprintf(stderr, "Debug: uparts_init: Got context.\n");
+	//Debug fprintf(stderr, "Debug: uparts_init: context @ %p\n", context);
+	//Debug fprintf(stderr, "Debug: uparts_init: context->private_data = %p\n", context->private_data);
+
+	return context->private_data;
 }
 
 static void uparts_destroy(void * private_data)
 {
 	//Debug fprintf(stderr, "Debug: uparts_destroy(...)\n");
+	//Debug fprintf(stderr, "Debug: uparts_destroy: private_data @ %p\n", private_data);
+	struct fuse_context * context = fuse_get_context();
+	//Debug fprintf(stderr, "Debug: uparts_destroy: Got context.\n");
+	//Debug fprintf(stderr, "Debug: uparts_destroy: context @ %p\n", context);
+	//Debug fprintf(stderr, "Debug: uparts_destroy: context->private_data = %p\n", context->private_data);
+	free_uparts_extra(context->private_data);
 	return;
 }
 
@@ -484,13 +498,25 @@ static struct fuse_operations upartsfs_oper = {
  */
 int free_uparts_extra(struct UPARTS_EXTRA * uparts_extra)
 {
+	struct UPARTS_DE_INFO *ude_head;
+	struct UPARTS_DE_INFO *ude_next;
+
 	/* Base case: Received null pointer */
 	if (uparts_extra == NULL) return 0;
+	if (uparts_extra->stats_by_index == NULL) return 0;
 
-	/* Walk by-index list, freeing tail-forward.  This frees all partitions. */
-	/* TODO */
+	/* Walk by-index list, freeing head-forward.  This frees all partitions. */
+	ude_head = uparts_extra->stats_by_index;
+	while (ude_head != NULL) {
+		ude_next = ude_head->next;
+		free(ude_head);
+		ude_head = ude_next;
+	}
 
 	uparts_extra->stats_by_offset = NULL;
+
+	tsk_vs_close(uparts_extra->tsk_vs);
+	tsk_img_close(uparts_extra->tsk_img);
 
 	free(uparts_extra);
 	return 0;
@@ -571,13 +597,15 @@ int main(int main_argc, char *main_argv[])
 		tsk_img_close(img);
 		exit(1);
 	}
+	//Debug fprintf(stderr, "Debug: main: uparts_extra @ %p\n", uparts_extra);
+	/* From here forward, free_uparts_extra handles cleaning up TSK structures */
+	uparts_extra->tsk_img = img;
+	uparts_extra->tsk_vs = vs;
 
 	/* Walk partition table to populate extra-data struct */
 	if (tsk_vs_part_walk(vs, 0, vs->part_count - 1, flags, populate_uparts_by_index, uparts_extra)) {
 		tsk_error_print(stderr);
 		free_uparts_extra(uparts_extra);
-		tsk_vs_close(vs);
-		tsk_img_close(img);
 		exit(1);
 	}
 
