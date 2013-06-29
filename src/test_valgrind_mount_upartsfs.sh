@@ -11,6 +11,6 @@ if [ -z "$IMAGEFILE" ]; then
 fi
 
 mkdir test
-valgrind --leak-check=full ./upartsfs "$IMAGEFILE" test
+valgrind --leak-check=full --leak-check=full ./upartsfs "$IMAGEFILE" test
 sleep 3; fusermount -u test
 rmdir test
