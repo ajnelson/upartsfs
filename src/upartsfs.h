@@ -44,4 +44,6 @@ struct UPARTS_EXTRA {
 
 static struct UPARTS_EXTRA *uparts_extra;
 
+int free_uparts_extra(struct UPARTS_EXTRA *);
+
 #endif //UPARTSFS_H

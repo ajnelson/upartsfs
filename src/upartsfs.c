@@ -42,6 +42,8 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
 {
 	int res = 0;
 
+	fprintf(stderr, "uparts_getattr(\"%s\", %p)\n", path, stbuf);
+
 	memset(stbuf, 0, sizeof(struct stat));
 	if (strncmp(path, "/", 2) == 0) {
 		stbuf->st_mode = S_IFDIR | 0755;
@@ -153,7 +155,7 @@ static TSK_WALK_RET_ENUM populate_uparts_by_index(TSK_VS_INFO * vs, const TSK_VS
 	rc = snprintf(new_tail->name, UPARTS_NAME_LENGTH, "%" PRIu8, new_tail_position);
 	if (rc < 0) {
 		/* TODO Describe error */
-		fprintf(stderr, "populate_uparts_by_index: snprintf error");
+		fprintf(stderr, "populate_uparts_by_index: snprintf error\n");
 		free(new_tail);
 		return TSK_WALK_ERROR;
 	}
@@ -177,6 +179,10 @@ static int uparts_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		       off_t offset, struct fuse_file_info *fi)
 {
 	struct UPARTS_DE_INFO *ude = NULL;
+	int i;
+
+	fprintf(stderr, "uparts_readdir(\"%s\", %p, ..., %zd, %p)\n", path, buf, offset, fi);
+
 	if (uparts_extra == NULL) {
 		fprintf(stderr, "uparts_readdir: uparts_extra is null.\n");
 		return -EIO;
@@ -201,9 +207,11 @@ static int uparts_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	/* Populate directory */
        	filler(buf, ".", NULL, 0);
        	filler(buf, "..", NULL, 0);
-	for (ude;
-	     ude != NULL && ude->next != NULL;
+	i = 0;
+	for (;
+	     ude != NULL;
 	     ude = ude->next) {
+		fprintf(stderr, "uparts_readdir: ude %d @%p;\tude->next @%p\n", i++, ude, ude->next);
 		if (filler(buf, ude->name, &(ude->st), 0))
 			break;
 	}
