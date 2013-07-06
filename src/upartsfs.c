@@ -33,9 +33,6 @@
 #include <sys/xattr.h>
 #endif
 
-#include <tsk/libtsk.h>
-#include "tsk/tsk_tools_i.h"
-
 #include "upartsfs.h"
 
 static int uparts_getattr(const char *path, struct stat *stbuf)
@@ -87,90 +84,40 @@ static int xmp_readlink(const char *path, char *buf, size_t size)
 	return 0;
 }
 
-static struct UPARTS_DE_INFO * last_de_info(const struct UPARTS_DE_INFO * ude, uint8_t * list_position)
-{
-	struct UPARTS_DE_INFO * tail = NULL;
-	uint8_t lp;
-
-	//Debug fprintf(stderr, "last_de_info: ude = %p\n", ude);
-	//Debug fprintf(stderr, "last_de_info: ude->next = %p\n", ude->next);
-
-	if (ude == NULL) {
-		return NULL;
-	}
-
-	lp = 0;
-
-	for (tail = ude; tail->next != NULL; tail = tail->next) {
-		//Debug fprintf(stderr, "last_de_info: lp = %" PRIu8 "\n", lp);
-		//Debug fprintf(stderr, "last_de_info: tail = %p\n", tail);
-		//Debug fprintf(stderr, "last_de_info: tail->next = %p\n", tail->next);
-		lp++;
-	}
-
-	if (list_position != NULL) {
-		*list_position = lp;
-	}
-
-	return tail;
-}
-
 static TSK_WALK_RET_ENUM populate_uparts_by_index(TSK_VS_INFO * vs, const TSK_VS_PART_INFO * part, void *ptr)
 {
 	uint64_t ssize = vs->block_size;
 	struct UPARTS_EXTRA * uparts_extra = (struct UPARTS_EXTRA *) ptr;
-	struct UPARTS_DE_INFO * sbi_tail = NULL;
-	struct UPARTS_DE_INFO * new_tail;
-	uint8_t old_tail_position = 0;
-	uint8_t new_tail_position = 0;
+	GList * sbi_new_head = NULL;
+	struct UPARTS_DE_INFO * new_tail_data;
+	unsigned int new_tail_position;
 	int rc;
 
-	/* Get tail of list, creating list if need be */
-	if (uparts_extra->stats_by_index == NULL) {
-		uparts_extra->stats_by_index = (struct UPARTS_DE_INFO *) tsk_malloc(sizeof(struct UPARTS_DE_INFO));
-		if (uparts_extra->stats_by_index == NULL) {
-			tsk_error_print(stderr);
-			return TSK_WALK_ERROR;
-		}
-		new_tail_position = 0;
-	} else {
-		/* Fetch list tail */
-		sbi_tail = last_de_info(uparts_extra->stats_by_index, &old_tail_position);
-		if (sbi_tail == NULL) {
-			/* TODO Describe error */
-			return TSK_WALK_ERROR;
-		}
-		new_tail_position = old_tail_position + 1;
-	}
-
 	/* Allocate new list tail */
-	new_tail = (struct UPARTS_DE_INFO *) tsk_malloc(sizeof(struct UPARTS_DE_INFO));
-	if (new_tail == NULL) {
+	new_tail_data = (struct UPARTS_DE_INFO *) tsk_malloc(sizeof(struct UPARTS_DE_INFO));
+	if (new_tail_data == NULL) {
 		tsk_error_print(stderr);
 		return TSK_WALK_ERROR;
 	}
 
 	/* Populate new list tail data */
-	new_tail->encounter_order = new_tail_position;
-	rc = snprintf(new_tail->name, UPARTS_NAME_LENGTH, "%" PRIu8, new_tail_position);
+	new_tail_position = 1 + ((unsigned int) g_list_length(uparts_extra->stats_by_index));
+	new_tail_data->encounter_order = new_tail_position;
+	rc = snprintf(new_tail_data->name, UPARTS_NAME_LENGTH, "%u", new_tail_position);
 	if (rc < 0) {
 		/* TODO Describe error */
 		fprintf(stderr, "populate_uparts_by_index: snprintf error\n");
-		free(new_tail);
+		free(new_tail_data);
 		return TSK_WALK_ERROR;
 	}
 	/* TODO Fill stat struct of new tail*/
-	new_tail->offset = part->start * ssize; 
-	new_tail->st.st_size = part->len * ssize;
-	new_tail->st.st_ino = 22; /* TODO Compact partition offset into ino_t */
+	new_tail_data->offset = part->start * ssize; 
+	new_tail_data->st.st_size = part->len * ssize;
+	new_tail_data->st.st_ino = 22; /* TODO Compact partition offset into ino_t */
 
 	/* Append new tail to list */
-	if (sbi_tail) {
-		new_tail->prev = sbi_tail;
-		sbi_tail->next = new_tail;
-	} else {
-		sbi_tail = new_tail;
-	}
+	sbi_new_head = g_list_append(uparts_extra->stats_by_index, new_tail_data);
+	uparts_extra->stats_by_index = sbi_new_head;
 
 	return TSK_WALK_CONT;
 }
@@ -179,6 +126,7 @@ static int uparts_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		       off_t offset, struct fuse_file_info *fi)
 {
 	struct UPARTS_DE_INFO *ude = NULL;
+	GList * list_head;
 	int i;
 
 	fprintf(stderr, "uparts_readdir(\"%s\", %p, ..., %zd, %p)\n", path, buf, offset, fi);
@@ -197,9 +145,9 @@ static int uparts_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		filler(buf, "in_order", NULL, 0);
 		return 0;
 	} else if (strncmp(path, "/by_offset", 11) == 0) {
-		ude = uparts_extra->stats_by_offset;
+		list_head = uparts_extra->stats_by_offset;
 	} else if (strncmp(path, "/in_order", 10) == 0) {
-		ude = uparts_extra->stats_by_index;
+		list_head = uparts_extra->stats_by_index;
 	} else {
 		return -ENOENT;
 	}
@@ -209,9 +157,10 @@ static int uparts_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
        	filler(buf, "..", NULL, 0);
 	i = 0;
 	for (;
-	     ude != NULL;
-	     ude = ude->next) {
-		fprintf(stderr, "uparts_readdir: ude %d @%p;\tude->next @%p\n", i++, ude, ude->next);
+	     list_head != NULL;
+	     list_head = list_head->next) {
+		ude = list_head->data;
+		fprintf(stderr, "uparts_readdir: ude %d @%p\n", i++, ude);
 		if (filler(buf, ude->name, &(ude->st), 0))
 			break;
 	}
@@ -508,19 +457,25 @@ int free_uparts_extra(struct UPARTS_EXTRA * uparts_extra)
 {
 	struct UPARTS_DE_INFO *ude_head;
 	struct UPARTS_DE_INFO *ude_next;
+	GList * list_entry = NULL;
 
 	/* Base case: Received null pointer */
 	if (uparts_extra == NULL) return 0;
 	if (uparts_extra->stats_by_index == NULL) return 0;
 
 	/* Walk by-index list, freeing head-forward.  This frees all partitions. */
-	ude_head = uparts_extra->stats_by_index;
-	while (ude_head != NULL) {
-		ude_next = ude_head->next;
-		free(ude_head);
-		ude_head = ude_next;
+	for (
+	  list_entry = uparts_extra->stats_by_index;
+	  list_entry != NULL;
+	  list_entry = list_entry->next
+	) {
+		free(list_entry->data);
 	}
 
+	g_list_free(uparts_extra->stats_by_index);
+	uparts_extra->stats_by_index = NULL;
+
+	g_list_free(uparts_extra->stats_by_offset);
 	uparts_extra->stats_by_offset = NULL;
 
 	tsk_vs_close(uparts_extra->tsk_vs);
@@ -545,6 +500,7 @@ int main(int main_argc, char *main_argv[])
 	TSK_IMG_INFO *img;
 	unsigned int ssize = 0; /* AJN TODO Wait, is this the same type as elsewhere? */
 	struct UPARTS_DE_INFO *ude;
+	GList *partition_list = NULL;
 
 	/* Pointer acrobatics ensue to split FUSE command line parameters from image file list for TSK */
 #ifdef TSK_WIN32
@@ -622,9 +578,10 @@ int main(int main_argc, char *main_argv[])
 
 	/* Debug */
 	fprintf(stderr, "main: Debug: Partitions by index:\n");
-	for (ude = uparts_extra->stats_by_index;
-	     ude != NULL && ude->next != NULL;
-	     ude = ude->next) {
+	for (partition_list = uparts_extra->stats_by_index;
+	     partition_list != NULL;
+	     partition_list = partition_list->next) {
+		ude = partition_list->data;
 		fprintf(stderr, "\t%" PRIu8 "\t%s\n", ude->encounter_order, ude->name);
 	}
 

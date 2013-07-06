@@ -1,6 +1,11 @@
 #ifndef UPARTSFS_H
 #define UPARTSFS_H
 
+#include <glib.h>
+
+#include <tsk/libtsk.h>
+#include "tsk/tsk_tools_i.h"
+
 #define UPARTS_NAME_LENGTH 42
 
 /*AJN Copied here for quick reference*/
@@ -25,9 +30,6 @@
 
 
 struct UPARTS_DE_INFO {
-	struct UPARTS_DE_INFO *prev;
-	struct UPARTS_DE_INFO *next;
-
 	TSK_DADDR_T offset;
 	TSK_DADDR_T length;
 	struct stat st;
@@ -36,8 +38,8 @@ struct UPARTS_DE_INFO {
 };
 
 struct UPARTS_EXTRA {
-	struct UPARTS_DE_INFO *stats_by_offset;
-	struct UPARTS_DE_INFO *stats_by_index;
+	GList *stats_by_offset;
+	GList *stats_by_index;
 	TSK_IMG_INFO *tsk_img;
 	TSK_VS_INFO *tsk_vs;
 };
