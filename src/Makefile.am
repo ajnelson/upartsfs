@@ -15,11 +15,11 @@ TESTS = \
   test_glib \
   test_mount_fusexmp.sh \
   test_readdir_fusexmp.sh \
-  test_mount_upartsfs.sh
-#TODO  test_readdir_upartsfs.sh
+  test_mount_upartsfs.sh \
+  test_readdir_upartsfs.sh
 
 check-valgrind:
 	./test_mount_fusexmp.sh --with-valgrind    || (sleep 0.1s; ./_reset_test.sh ; sleep 0.5s; exit 1)
 	./test_readdir_fusexmp.sh --with-valgrind  || (sleep 0.1s; ./_reset_test.sh ; sleep 0.5s; exit 1)
 	./test_mount_upartsfs.sh --with-valgrind   || (sleep 0.1s; ./_reset_test.sh ; sleep 0.5s; exit 1)
-#TODO	./test_readdir_upartsfs.sh --with-valgrind || (sleep 0.1s; ./_reset_test.sh ; sleep 0.5s; exit 1)
+	./test_readdir_upartsfs.sh --with-valgrind || (sleep 0.1s; ./_reset_test.sh ; sleep 0.5s; exit 1)
