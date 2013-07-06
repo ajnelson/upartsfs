@@ -45,16 +45,24 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
 	if (strncmp(path, "/", 2) == 0) {
 		stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 4;
-	} else if (strncmp(path, "/in_order", 10) == 0) {
+	} else if (strncmp(path, "/in_order", 9) == 0) {
 		stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 2;
-	} else if (strncmp(path, "/by_offset", 11) == 0) {
+	} else if (strncmp(path, "/by_offset", 10) == 0) {
 		stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 2;
-	} else if (0) {
-		/* TODO Handle actual partition files */
+	} else if (strncmp(path, "/in_order/", 10) == 0) {
+		fprintf(stderr, "uparts_getattr in /in_order/...\n");
+		stbuf->st_mode = S_IFREG | 0444;
+		stbuf->st_nlink = 1;
+		/* TODO Look up the corresponding UPARTS_DE_INFO struct to fill this correctly */
+		stbuf->st_size = 0;
+	} else if (strncmp(path, "/by_offset", 10) == 0) {
+		/* TODO */
+		fprintf(stderr, "uparts_getattr: In /by_offset/ - not supported yet\n");
 		return -ENOTSUP;
 	} else {
+		fprintf(stderr, "uparts_getattr: No rule for \"%s\"\n", path);
 		return -ENOENT;
 	}
 
