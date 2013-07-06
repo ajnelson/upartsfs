@@ -12,5 +12,6 @@ sudo apt-get install \
   clang \
   fuse-dbg \
   libtool \
+  libglib2.0-dev \
   libfuse-dev \
   valgrind

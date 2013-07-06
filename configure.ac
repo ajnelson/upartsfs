@@ -33,6 +33,9 @@ PKG_CHECK_MODULES(
 )
 AC_SUBST(FUSE_LIBS)
 AC_SUBST(FUSE_CFLAGS)
+#Check for GLib (generic, portable linked lists)
+#Macro c/o: <http://stackoverflow.com/a/3538635/1207160>
+PKG_CHECK_MODULES([DEPS], [glib-2.0 >= 2.24.1])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_UID_T
