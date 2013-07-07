@@ -38,38 +38,62 @@
 
 #include "upartsfs.h"
 
+/*
+ * strtol security reminders:
+ * <https://www.securecoding.cert.org/confluence/display/seccode/INT06-C.+Use+strtol%28%29+or+a+related+function+to+convert+a+string+token+to+an+integer>
+*/
 static int uparts_getattr(const char *path, struct stat *stbuf)
 {
-	int res = 0;
+	int old_errno = 0;
+	int new_errno = 0;
+	unsigned int requested_index = 0;
+	off_t requested_offset = 0;
+	char * end_of_strconv = NULL;
+	const char * path_numeric_segment = NULL;
 
 	fprintf(stderr, "uparts_getattr(\"%s\", %p)\n", path, stbuf);
+
+	//Debug fprintf(stderr, "uparts_getattr: Note: strlen(\"/in_order/\") = %zu\n", strlen("/in_order/")); //10
 
 	memset(stbuf, 0, sizeof(struct stat));
 	if (strncmp(path, "/", 2) == 0) {
 		stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 4;
-	} else if (strncmp(path, "/in_order", 9) == 0) {
-		stbuf->st_mode = S_IFDIR | 0755;
-		stbuf->st_nlink = 2;
-	} else if (strncmp(path, "/by_offset", 10) == 0) {
-		stbuf->st_mode = S_IFDIR | 0755;
-		stbuf->st_nlink = 2;
 	} else if (strncmp(path, "/in_order/", 10) == 0) {
 		fprintf(stderr, "uparts_getattr in /in_order/...\n");
 		stbuf->st_mode = S_IFREG | 0444;
 		stbuf->st_nlink = 1;
 		/* TODO Look up the corresponding UPARTS_DE_INFO struct to fill this correctly */
 		stbuf->st_size = 0;
-	} else if (strncmp(path, "/by_offset", 10) == 0) {
+		old_errno = errno;
+		path_numeric_segment = path + strlen("/in_order/");
+		requested_index = strtoul(path_numeric_segment, &end_of_strconv, 10);
+		new_errno = errno;
+		if ('\0' != *end_of_strconv) {
+			fprintf(stderr, "uparts_getattr: Extra non-numeric characters at end of path: %s.\n", end_of_strconv);
+			return -EIO;
+		} else if (ERANGE == new_errno) {
+			fprintf(stderr, "uparts_getattr: %s out of range.\n", path_numeric_segment);
+			return -ERANGE;
+		}
+		fprintf(stderr, "uparts_getattr: About to look up %u from path.\n", requested_index);
+	} else if (strncmp(path, "/by_offset/", 11) == 0) {
 		/* TODO */
 		fprintf(stderr, "uparts_getattr: In /by_offset/ - not supported yet\n");
+		requested_offset = 0;
 		return -ENOTSUP;
+	} else if (strncmp(path, "/in_order", 9) == 0) {
+		stbuf->st_mode = S_IFDIR | 0755;
+		stbuf->st_nlink = 2;
+	} else if (strncmp(path, "/by_offset", 10) == 0) {
+		stbuf->st_mode = S_IFDIR | 0755;
+		stbuf->st_nlink = 2;
 	} else {
 		fprintf(stderr, "uparts_getattr: No rule for \"%s\"\n", path);
 		return -ENOENT;
 	}
 
-	return res;
+	return 0;
 }
 
 static int xmp_access(const char *path, int mask)
