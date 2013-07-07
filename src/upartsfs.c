@@ -11,7 +11,10 @@
 
 #define FUSE_USE_VERSION 30
 
+#include <tsk/libtsk.h>
+#include "tsk/tsk_tools_i.h"
 #ifdef HAVE_CONFIG_H
+#include "unconfig.h"
 #include <config.h>
 #endif
 

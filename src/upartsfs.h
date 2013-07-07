@@ -3,15 +3,10 @@
 
 #include <glib.h>
 
-#include <tsk/libtsk.h>
-#include "tsk/tsk_tools_i.h"
-
 #define UPARTS_NAME_LENGTH 42
 
 /*AJN Copied here for quick reference*/
-/**
- * Linked list entry that describes a volume in a generic way. 
-
+/*
     struct TSK_VS_PART_INFO {
         int tag;
         TSK_VS_PART_INFO *prev; ///< Pointer to previous partition (or NULL)

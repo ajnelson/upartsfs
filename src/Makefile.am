@@ -5,7 +5,7 @@ LDFLAGS += -static
 
 bin_PROGRAMS = upartsfs fusexmp test_glib
 fusexmp_SOURCES = fusexmp.c
-upartsfs_SOURCES = upartsfs.c upartsfs.h
+upartsfs_SOURCES = upartsfs.c upartsfs.h unconfig.h
 test_glib_SOURCES = test_glib.c
 
 test_glib_CFLAGS = $(DEPS_CFLAGS)
