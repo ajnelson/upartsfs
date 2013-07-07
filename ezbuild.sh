@@ -9,3 +9,5 @@ make
 make check
 make check-valgrind
 make install
+set +x
+echo "Done."
