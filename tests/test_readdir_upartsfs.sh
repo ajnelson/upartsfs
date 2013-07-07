@@ -8,11 +8,11 @@ source _test_lib.sh
 
 #Default to using CFREDS Mac image
 if [ -z "$IMAGEFILE" ]; then
-  IMAGEFILE=macwd.e01
+  IMAGEFILE=$top_srcdir/src/macwd.e01
 fi
 
 mkdir test
-${VALGRIND_COMMAND} ./upartsfs test "$IMAGEFILE"
+${VALGRIND_COMMAND} $top_srcdir/src/upartsfs test "$IMAGEFILE"
 ls test
 ls -a test
 ls -al test

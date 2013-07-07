@@ -48,5 +48,7 @@ AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_CHECK_FUNCS([lchown memset mkdir mkfifo rmdir])
 
 AC_CONFIG_FILES([Makefile
-                 src/Makefile])
+                 src/Makefile
+                 tests/Makefile
+                 tests/_test_lib.sh])
 AC_OUTPUT

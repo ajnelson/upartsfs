@@ -20,7 +20,8 @@ build
 *.app
 src/fusexmp
 src/upartsfs
-src/test_glib
+tests/_test_lib.sh
+tests/test_glib
 
 # Autotools
 .deps
