@@ -38,9 +38,31 @@
 
 #include "upartsfs.h"
 
+static struct UPARTS_DE_INFO * get_de_info_by_offset(off_t requested_offset)
+{
+        struct UPARTS_DE_INFO * retval = NULL;
+        struct UPARTS_DE_INFO * candidate = NULL;
+        GList * list_entry;
+
+        for (
+          list_entry = uparts_extra->stats_by_offset;
+          list_entry != NULL;
+          list_entry = list_entry->next
+        ) {
+		candidate = (struct UPARTS_DE_INFO *) list_entry->data;
+                if (requested_offset == candidate->offset) {
+                        retval = candidate;
+                        break;
+                }
+        }
+
+        return retval;
+}
+
 static struct UPARTS_DE_INFO * get_de_info_by_index(unsigned int requested_index)
 {
 	struct UPARTS_DE_INFO * retval = NULL;
+        struct UPARTS_DE_INFO * candidate = NULL;
 	GList * list_entry;
 
 	for (
@@ -48,8 +70,9 @@ static struct UPARTS_DE_INFO * get_de_info_by_index(unsigned int requested_index
 	  list_entry != NULL;
 	  list_entry = list_entry->next
 	) {
-		if (requested_index == ((struct UPARTS_DE_INFO *) list_entry->data)->encounter_order) {
-			retval = list_entry->data;
+		candidate = (struct UPARTS_DE_INFO *) list_entry->data;
+		if (requested_index == candidate->encounter_order) {
+			retval = candidate;
 			break;
 		}
 	}
@@ -101,11 +124,30 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
 			return -ENOENT;
 		}
 		stbuf->st_size = attrsource->st.st_size;
+		stbuf->st_ino = attrsource->st.st_ino;
 	} else if (strncmp(path, "/by_offset/", 11) == 0) {
-		/* TODO */
-		fprintf(stderr, "uparts_getattr: In /by_offset/ - not supported yet\n");
-		requested_offset = 0;
-		return -ENOTSUP;
+		fprintf(stderr, "uparts_getattr in /by_offset/...\n");
+		stbuf->st_mode = S_IFREG | 0444;
+		stbuf->st_nlink = 1;
+		/* Parse offset out of path */
+		path_numeric_segment = path + strlen("/by_offset/");
+		requested_offset = strtoull(path_numeric_segment, &end_of_strconv, 10);
+		if ('\0' != *end_of_strconv) {
+			fprintf(stderr, "uparts_getattr: Extra non-numeric characters at end of path: %s.\n", end_of_strconv);
+			return -ENOENT;
+		} else if (ERANGE == errno) {
+			fprintf(stderr, "uparts_getattr: %s out of range.\n", path_numeric_segment);
+			return -ERANGE;
+		}
+		fprintf(stderr, "uparts_getattr: About to look up %zu from path.\n", requested_offset);
+	
+		attrsource = get_de_info_by_offset(requested_offset);
+		if (NULL == attrsource) {
+			fprintf(stderr, "uparts_getattr: Could not find partition at %zu.\n", requested_offset);
+			return -ENOENT;
+		}
+		stbuf->st_size = attrsource->st.st_size;
+		stbuf->st_ino = attrsource->st.st_ino;
 	} else if (strncmp(path, "/in_order", 9) == 0) {
 		stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 2;
@@ -151,6 +193,8 @@ static TSK_WALK_RET_ENUM populate_uparts_by_index(TSK_VS_INFO * vs, const TSK_VS
 	struct UPARTS_DE_INFO * new_tail_data;
 	unsigned int new_tail_position;
 	int rc;
+	uint64_t modulator;
+	ino_t ino_t_mask = -1;
 
 	/* Allocate new list tail */
 	new_tail_data = (struct UPARTS_DE_INFO *) tsk_malloc(sizeof(struct UPARTS_DE_INFO));
@@ -172,7 +216,14 @@ static TSK_WALK_RET_ENUM populate_uparts_by_index(TSK_VS_INFO * vs, const TSK_VS
 	/* TODO Fill stat struct of new tail*/
 	new_tail_data->offset = part->start * ssize; 
 	new_tail_data->st.st_size = part->len * ssize;
-	new_tail_data->st.st_ino = 22; /* TODO Compact partition offset into ino_t */
+
+	/* Compact partition offset into ino_t (guarantee uniqueness with modulus and relative primality) */
+	modulator = (3 * new_tail_data->offset);
+	new_tail_data->st.st_ino = (ino_t) (modulator & ino_t_mask); 
+	//Debug fprintf(stderr, "populate_uparts_by_index: Debug: %zu = sizeof(ino_t)\n", sizeof(ino_t));
+	//Debug fprintf(stderr, "populate_uparts_by_index: Debug: %lx = ino_t_mask\n", ino_t_mask);
+	//Debug fprintf(stderr, "populate_uparts_by_index: Debug: %lx = modulator\n", modulator);
+	//Debug fprintf(stderr, "populate_uparts_by_index: Debug: %lx = new_tail_data->st.st_ino\n", new_tail_data->st.st_ino);
 
 	/* Append new tail to list */
 	sbi_new_head = g_list_append(uparts_extra->stats_by_index, new_tail_data);
@@ -200,7 +251,7 @@ static int uparts_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		/* (The root directory isn't terribly dynamic) */
 	       	filler(buf, ".", NULL, 0);
 	       	filler(buf, "..", NULL, 0);
-		filler(buf, "by_offset", NULL, 0); /*TODO Specify these are directories */
+		filler(buf, "by_offset", NULL, 0);
 		filler(buf, "in_order", NULL, 0);
 		return 0;
 	} else if (strncmp(path, "/by_offset", 11) == 0) {
@@ -532,6 +583,14 @@ int free_uparts_extra(struct UPARTS_EXTRA * uparts_extra)
 	g_list_free(uparts_extra->stats_by_index);
 	uparts_extra->stats_by_index = NULL;
 
+	/* Walk by-index list, freeing head-forward.  This frees all partitions. */
+	for (
+	  list_entry = uparts_extra->stats_by_offset;
+	  list_entry != NULL;
+	  list_entry = list_entry->next
+	) {
+		free(list_entry->data);
+	}
 	g_list_free(uparts_extra->stats_by_offset);
 	uparts_extra->stats_by_offset = NULL;
 
@@ -540,6 +599,61 @@ int free_uparts_extra(struct UPARTS_EXTRA * uparts_extra)
 
 	free(uparts_extra);
 	return 0;
+}
+
+struct UPARTS_DE_INFO * clone_uparts_de_info(struct UPARTS_DE_INFO * old)
+{
+	struct UPARTS_DE_INFO * retval = NULL;
+
+	if (NULL == old) return NULL;
+
+	retval = (struct UPARTS_DE_INFO *) tsk_malloc(sizeof(struct UPARTS_DE_INFO));
+	if (NULL == retval) {
+		tsk_error_print(stderr);
+		return retval;
+	}
+	
+        retval->offset = old->offset;
+        retval->length = old->length;
+        retval->st = old->st;
+        retval->encounter_order = old->encounter_order;
+
+	return retval;
+}
+
+static int populate_uparts_by_offset(struct UPARTS_EXTRA * uparts_extra)
+{
+	int retval = 0;
+	int rc = 0;
+	GList *sbi_entry;
+	GList *sbo_new_head = NULL;
+	struct UPARTS_DE_INFO *new_tail_data;
+
+	for (
+	  sbi_entry = uparts_extra->stats_by_index;
+	  sbi_entry != NULL;
+	  sbi_entry = sbi_entry->next
+	) {
+		new_tail_data = clone_uparts_de_info((struct UPARTS_DE_INFO *) sbi_entry->data);
+		if (NULL == new_tail_data) {
+			fprintf(stderr, "populate_uparts_by_offset: Cloning error.\n");
+			retval = -1;
+			break;
+		}
+		rc = snprintf(new_tail_data->name, UPARTS_NAME_LENGTH, "%zu", new_tail_data->offset);
+		if (rc < 0) {
+			/* TODO Describe error */
+			fprintf(stderr, "populate_uparts_by_offset: snprintf error\n");
+			free(new_tail_data);
+			retval = -1;
+			break;
+		}
+		/* TODO Check for append error */
+		sbo_new_head = g_list_append(uparts_extra->stats_by_offset, new_tail_data);
+		uparts_extra->stats_by_offset = sbo_new_head;
+	}
+
+	return retval;
 }
 
 int main(int main_argc, char *main_argv[])
@@ -551,13 +665,21 @@ int main(int main_argc, char *main_argv[])
 	TSK_VS_INFO *vs;
 	int ch;
 	TSK_OFF_T imgaddr = 0;
-	TSK_VS_PART_FLAG_ENUM flags = 0;
+	TSK_VS_PART_FLAG_ENUM flags;
 	TSK_IMG_TYPE_ENUM imgtype = TSK_IMG_TYPE_DETECT;
 	TSK_VS_TYPE_ENUM vstype = TSK_VS_TYPE_DETECT;
 	TSK_IMG_INFO *img;
 	unsigned int ssize = 0; /* AJN TODO Wait, is this the same type as elsewhere? */
 	struct UPARTS_DE_INFO *ude;
 	GList *partition_list = NULL;
+
+	/*
+	 * Specify we are looking for ~data partitions - which seems to translate to not-metadata partitions.
+	 * Why: A Mac partition table had two "Partitions" at the same offset, causing some ambiguity.
+	 * TODO It would be better to check when populating uparts_extra->by_offset that the offset isn't already in use.
+	 */
+	flags = TSK_VS_PART_FLAG_ALLOC | TSK_VS_PART_FLAG_UNALLOC;
+	flags &= ~TSK_VS_PART_FLAG_META;
 
 	/* Pointer acrobatics ensue to split FUSE command line parameters from image file list for TSK */
 #ifdef TSK_WIN32
@@ -630,16 +752,21 @@ int main(int main_argc, char *main_argv[])
 		exit(1);
 	}
 
-	/* Walk in-table-order partition list to generate by-offset partition list */
-	/* TODO */
-
 	/* Debug */
-	fprintf(stderr, "main: Debug: Partitions by index:\n");
+	fprintf(stderr, "main: Debug: Partitions and offsets by index:\n");
 	for (partition_list = uparts_extra->stats_by_index;
 	     partition_list != NULL;
 	     partition_list = partition_list->next) {
 		ude = partition_list->data;
 		fprintf(stderr, "\t%" PRIu8 "\t%s\n", ude->encounter_order, ude->name);
+		
+	}
+
+	/* Walk in-table-order partition list to generate by-offset partition list */
+	if (populate_uparts_by_offset(uparts_extra)) {
+		fprintf(stderr, "main: populate_uparts_by_offset failed.\n");
+		free_uparts_extra(uparts_extra);
+		exit(1);
 	}
 
 	umask(0);

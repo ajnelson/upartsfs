@@ -41,6 +41,9 @@ struct UPARTS_EXTRA {
 
 static struct UPARTS_EXTRA *uparts_extra;
 
+/* Clones entire struct except for name field.  Returns NULL on failed clone.  Caller is responsible for freeing result. */
+struct UPARTS_DE_INFO * clone_uparts_de_info(struct UPARTS_DE_INFO *);
+
 int free_uparts_extra(struct UPARTS_EXTRA *);
 
 #endif //UPARTSFS_H
