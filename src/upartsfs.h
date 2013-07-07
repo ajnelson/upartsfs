@@ -25,18 +25,18 @@
 
 
 struct UPARTS_DE_INFO {
-	TSK_DADDR_T offset;
-	TSK_DADDR_T length;
-	struct stat st;
-	uint8_t encounter_order;
-	char name[UPARTS_NAME_LENGTH];
+    TSK_DADDR_T offset;
+    TSK_DADDR_T length;
+    struct stat st;
+    uint8_t encounter_order;
+    char name[UPARTS_NAME_LENGTH];
 };
 
 struct UPARTS_EXTRA {
-	GList *stats_by_offset;
-	GList *stats_by_index;
-	TSK_IMG_INFO *tsk_img;
-	TSK_VS_INFO *tsk_vs;
+    GList *stats_by_offset;
+    GList *stats_by_index;
+    TSK_IMG_INFO *tsk_img;
+    TSK_VS_INFO *tsk_vs;
 };
 
 static struct UPARTS_EXTRA *uparts_extra;
