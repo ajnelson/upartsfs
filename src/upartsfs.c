@@ -466,8 +466,6 @@ static struct fuse_operations upartsfs_oper = {
  */
 int free_uparts_extra(struct UPARTS_EXTRA * uparts_extra)
 {
-	struct UPARTS_DE_INFO *ude_head;
-	struct UPARTS_DE_INFO *ude_next;
 	GList * list_entry = NULL;
 
 	/* Base case: Received null pointer */
