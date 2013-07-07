@@ -38,20 +38,36 @@
 
 #include "upartsfs.h"
 
+static struct UPARTS_DE_INFO * get_de_info_by_index(unsigned int requested_index)
+{
+	struct UPARTS_DE_INFO * retval = NULL;
+	GList * list_entry;
+
+	for (
+	  list_entry = uparts_extra->stats_by_index;
+	  list_entry != NULL;
+	  list_entry = list_entry->next
+	) {
+		if (requested_index == ((struct UPARTS_DE_INFO *) list_entry->data)->encounter_order) {
+			retval = list_entry->data;
+			break;
+		}
+	}
+
+	return retval;
+}
+
 /*
  * strtol security reminders:
  * <https://www.securecoding.cert.org/confluence/display/seccode/INT06-C.+Use+strtol%28%29+or+a+related+function+to+convert+a+string+token+to+an+integer>
 */
 static int uparts_getattr(const char *path, struct stat *stbuf)
 {
-	int old_errno = 0;
-	int new_errno = 0;
 	unsigned int requested_index = 0;
 	off_t requested_offset = 0;
 	char * end_of_strconv = NULL;
 	const char * path_numeric_segment = NULL;
 	struct UPARTS_DE_INFO * attrsource = NULL;
-	GList * list_entry;
 
 	fprintf(stderr, "uparts_getattr(\"%s\", %p)\n", path, stbuf);
 
@@ -67,31 +83,19 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
 		stbuf->st_nlink = 1;
 
 		/* Parse index out of path */
-		old_errno = errno;
 		path_numeric_segment = path + strlen("/in_order/");
 		requested_index = strtoul(path_numeric_segment, &end_of_strconv, 10);
-		new_errno = errno;
 		if ('\0' != *end_of_strconv) {
 			fprintf(stderr, "uparts_getattr: Extra non-numeric characters at end of path: %s.\n", end_of_strconv);
-			return -EIO;
-		} else if (ERANGE == new_errno) {
+			return -ENOENT;
+		} else if (ERANGE == errno) {
 			fprintf(stderr, "uparts_getattr: %s out of range.\n", path_numeric_segment);
 			return -ERANGE;
 		}
 		fprintf(stderr, "uparts_getattr: About to look up %u from path.\n", requested_index);
 	
 		/* Look up corresponding UPARTS_DE_INFO */
-		/* TODO attrsource = get_de_info_by_index(requested_index); */
-		for (
-		  list_entry = uparts_extra->stats_by_index;
-		  list_entry != NULL;
-		  list_entry = list_entry->next
-		) {
-			if (requested_index == ((struct UPARTS_DE_INFO *) list_entry->data)->encounter_order) {
-				attrsource = list_entry->data;
-				break;
-			}
-		}
+		attrsource = get_de_info_by_index(requested_index);
 		if (NULL == attrsource) {
 			fprintf(stderr, "uparts_getattr: Could not find partition at %u.\n", requested_index);
 			return -ENOENT;
