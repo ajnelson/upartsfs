@@ -109,7 +109,7 @@ static TSK_WALK_RET_ENUM populate_uparts_by_index(TSK_VS_INFO * vs, const TSK_VS
 	}
 
 	/* Populate new list tail data */
-	new_tail_position = 1 + ((unsigned int) g_list_length(uparts_extra->stats_by_index));
+	new_tail_position = ((unsigned int) g_list_length(uparts_extra->stats_by_index));
 	new_tail_data->encounter_order = new_tail_position;
 	rc = snprintf(new_tail_data->name, UPARTS_NAME_LENGTH, "%u", new_tail_position);
 	if (rc < 0) {
