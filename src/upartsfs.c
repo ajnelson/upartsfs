@@ -50,6 +50,8 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
 	off_t requested_offset = 0;
 	char * end_of_strconv = NULL;
 	const char * path_numeric_segment = NULL;
+	struct UPARTS_DE_INFO * attrsource = NULL;
+	GList * list_entry;
 
 	fprintf(stderr, "uparts_getattr(\"%s\", %p)\n", path, stbuf);
 
@@ -63,8 +65,8 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
 		fprintf(stderr, "uparts_getattr in /in_order/...\n");
 		stbuf->st_mode = S_IFREG | 0444;
 		stbuf->st_nlink = 1;
-		/* TODO Look up the corresponding UPARTS_DE_INFO struct to fill this correctly */
-		stbuf->st_size = 0;
+
+		/* Parse index out of path */
 		old_errno = errno;
 		path_numeric_segment = path + strlen("/in_order/");
 		requested_index = strtoul(path_numeric_segment, &end_of_strconv, 10);
@@ -77,6 +79,24 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
 			return -ERANGE;
 		}
 		fprintf(stderr, "uparts_getattr: About to look up %u from path.\n", requested_index);
+	
+		/* Look up corresponding UPARTS_DE_INFO */
+		/* TODO attrsource = get_de_info_by_index(requested_index); */
+		for (
+		  list_entry = uparts_extra->stats_by_index;
+		  list_entry != NULL;
+		  list_entry = list_entry->next
+		) {
+			if (requested_index == ((struct UPARTS_DE_INFO *) list_entry->data)->encounter_order) {
+				attrsource = list_entry->data;
+				break;
+			}
+		}
+		if (NULL == attrsource) {
+			fprintf(stderr, "uparts_getattr: Could not find partition at %u.\n", requested_index);
+			return -ENOENT;
+		}
+		stbuf->st_size = attrsource->st.st_size;
 	} else if (strncmp(path, "/by_offset/", 11) == 0) {
 		/* TODO */
 		fprintf(stderr, "uparts_getattr: In /by_offset/ - not supported yet\n");
