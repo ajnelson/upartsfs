@@ -369,15 +369,12 @@ static int xmp_utimens(const char *path, const struct timespec ts[2])
 }
 #endif
 
-static int xmp_open(const char *path, struct fuse_file_info *fi)
+static int uparts_open(const char *path, struct fuse_file_info *fi)
 {
-    int res;
-
-    res = open(path, fi->flags);
-    if (res == -1)
-        return -errno;
-
-    close(res);
+    if (! (fi->flags & O_RDONLY) ) {
+        fprintf(stderr, "uparts_open(\"%s\", fi->flags=%x): Mode beside O_RDONLY (%x) requested.  Not supported.\n", path, fi->flags, O_RDONLY);
+        return -EOPNOTSUPP;
+    }
     return 0;
 }
 
@@ -545,7 +542,7 @@ static struct fuse_operations upartsfs_oper = {
 #ifdef HAVE_UTIMENSAT
     .utimens        = xmp_utimens,
 #endif
-    .open           = xmp_open,
+    .open           = uparts_open,
     .read           = xmp_read,
     .write          = uparts_write,
     .statfs         = xmp_statfs,

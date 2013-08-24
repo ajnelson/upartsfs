@@ -22,6 +22,7 @@ src/fusexmp
 src/upartsfs
 tests/_test_lib.sh
 tests/test_glib
+tests/test_open
 
 # Autotools
 .deps
