@@ -19,6 +19,7 @@ build
 *.out
 *.app
 src/fusexmp
+src/loggedfs
 src/upartsfs
 tests/_test_lib.sh
 tests/test_glib
