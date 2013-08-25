@@ -18,6 +18,8 @@ ls -a test
 ls -al test
 test -d test/in_order
 ls -al test/in_order
+test -f test/in_order/0
+test -r test/in_order/0
 
 test -d test/by_offset
 ls -al test/by_offset
