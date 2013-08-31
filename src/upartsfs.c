@@ -38,6 +38,9 @@
 
 #include "upartsfs.h"
 
+#define UPARTS_INO_DIR_BY_OFFSET 3
+#define UPARTS_INO_DIR_IN_ORDER 4
+
 static struct UPARTS_DE_INFO * get_de_info_by_offset(off_t requested_offset)
 {
     struct UPARTS_DE_INFO * retval = NULL;
@@ -101,11 +104,7 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 4;
     } else if (strncmp(path, "/in_order/", 10) == 0) {
-        fprintf(stderr, "uparts_getattr in /in_order/...\n");
-
-        /* Apply stat defaults */
-        stbuf->st_mode = S_IFREG | 0444;
-        stbuf->st_nlink = 1;
+        fprintf(stderr, "uparts_getattr: In /in_order/...\n");
 
         /* Parse index out of path */
         path_numeric_segment = path + strlen("/in_order/");
@@ -125,14 +124,14 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
             fprintf(stderr, "uparts_getattr: Could not find partition at %u.\n", requested_index);
             return -ENOENT;
         }
+
+        /* Set remaining inode information */
         stbuf->st_size = attrsource->st.st_size;
         stbuf->st_ino = attrsource->st.st_ino;
+        stbuf->st_mode = attrsource->st.st_mode;
+        stbuf->st_nlink = attrsource->st.st_nlink;
     } else if (strncmp(path, "/by_offset/", 11) == 0) {
-        fprintf(stderr, "uparts_getattr in /by_offset/...\n");
-
-        /* Apply stat defaults */
-        stbuf->st_mode = S_IFREG | 0444;
-        stbuf->st_nlink = 1;
+        fprintf(stderr, "uparts_getattr: In /by_offset/...\n");
 
         /* Parse offset out of path */
         path_numeric_segment = path + strlen("/by_offset/");
@@ -152,19 +151,28 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
             fprintf(stderr, "uparts_getattr: Could not find partition at %zu.\n", requested_offset);
             return -ENOENT;
         }
+
+        /* Set remaining inode information */
         stbuf->st_size = attrsource->st.st_size;
         stbuf->st_ino = attrsource->st.st_ino;
+        stbuf->st_mode = attrsource->st.st_mode;
+        stbuf->st_nlink = attrsource->st.st_nlink;
     } else if (strncmp(path, "/in_order", 9) == 0) {
+        fprintf(stderr, "uparts_getattr: Looking at /in_order...\n");
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2;
+        stbuf->st_ino = UPARTS_INO_DIR_IN_ORDER;
     } else if (strncmp(path, "/by_offset", 10) == 0) {
+        fprintf(stderr, "uparts_getattr: Looking at /by_offset...\n");
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2;
+        stbuf->st_ino = UPARTS_INO_DIR_BY_OFFSET;
     } else {
         fprintf(stderr, "uparts_getattr: No rule for \"%s\"\n", path);
         return -ENOENT;
     }
 
+    fprintf(stderr, "uparts_getattr: Debug: stbuf->st_mode = %o\n", stbuf->st_mode);
     return 0;
 }
 
@@ -230,6 +238,12 @@ static TSK_WALK_RET_ENUM populate_uparts_by_index(TSK_VS_INFO * vs, const TSK_VS
     //Debug fprintf(stderr, "populate_uparts_by_index: Debug: %lx = ino_t_mask\n", ino_t_mask);
     //Debug fprintf(stderr, "populate_uparts_by_index: Debug: %lx = modulator\n", modulator);
     //Debug fprintf(stderr, "populate_uparts_by_index: Debug: %lx = new_tail_data->st.st_ino\n", new_tail_data->st.st_ino);
+
+    /* Set the default mode: regular file, read-only for all */
+    new_tail_data->st.st_mode = S_IFREG | 0444;
+
+    /* Increment the hard link count */
+    new_tail_data->st.st_nlink++;
 
     /* Append new tail to list */
     sbi_new_head = g_list_append(uparts_extra->stats_by_index, new_tail_data);
