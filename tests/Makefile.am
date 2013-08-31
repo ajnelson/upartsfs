@@ -17,7 +17,8 @@ TESTS = \
   test_mount_upartsfs.sh \
   test_readdir_upartsfs.sh \
   test_open_fusexmp.sh \
-  test_open_upartsfs_r.sh
+  test_open_upartsfs_r.sh \
+  test_read.sh
 
 test_glib_SOURCES = test_glib.c
 test_glib_CFLAGS = $(DEPS_CFLAGS)
