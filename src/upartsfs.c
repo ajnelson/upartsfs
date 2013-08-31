@@ -178,9 +178,11 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
 
 static int xmp_access(const char *path, int mask)
 {
+    fprintf(stderr, "xmp_access(\"%s\", %o)\n", path, mask);
     int res;
 
     res = access(path, mask);
+    fprintf(stderr, "xmp_access: res = %d\n", res);
     if (res == -1)
         return -errno;
 
