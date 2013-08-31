@@ -462,6 +462,7 @@ static int uparts_read(const char *path, char *buf, size_t size, off_t offset,
     fprintf(stderr, "uparts_read(\"%s\", %p, %zd, %zd, %p)\n", path, buf, size, offset, fi);
 
     ssize_t res;
+    size_t img_read_length = size;
     TSK_OFF_T img_read_offset;
     TSK_OFF_T part_offset;
     size_t part_len;
@@ -471,19 +472,24 @@ static int uparts_read(const char *path, char *buf, size_t size, off_t offset,
 
     ude = (struct UPARTS_DE_INFO *) fi->fh;
     part_offset = ude->offset;
-    part_len = ude->length;
+    part_len = ude->st.st_size;
     
     context = fuse_get_context();
     uparts_extra = (struct UPARTS_EXTRA *) context->private_data;
 
     img_read_offset = offset + part_offset;
 
-    if (img_read_offset + size > part_offset + part_len) {
-        fprintf(stderr, "uparts_read: Requested offset and length (%zu, %zu) would read outside the requested partition (image offset %zu, length %zu).\n", offset, size, part_offset, part_len);
+    if (img_read_offset > part_offset + part_len) {
+        fprintf(stderr, "uparts_read: Error: Requested offset (%zu) is outside the requested partition (image offset %zu, length %zu).\n", offset, part_offset, part_len);
         return -EFAULT;
     }
 
-    res = tsk_img_read(uparts_extra->tsk_img, img_read_offset, buf, size);
+    if (img_read_offset + size > part_offset + part_len) {
+        img_read_length = part_offset + part_len - img_read_offset;
+        fprintf(stderr, "uparts_read: Warning: Requested offset and length (%zu, %zu) would read outside the requested partition (image offset %zu, length %zu).  Trimmed request to read %zu bytes.\n", offset, size, part_offset, part_len, img_read_length);
+    }
+
+    res = tsk_img_read(uparts_extra->tsk_img, img_read_offset, buf, img_read_length);
     if (res == -1) {
         tsk_error_print(stderr);
         return -1;
@@ -708,7 +714,6 @@ struct UPARTS_DE_INFO * clone_uparts_de_info(struct UPARTS_DE_INFO * old)
     }
     
     retval->offset = old->offset;
-    retval->length = old->length;
     retval->st = old->st;
     retval->encounter_order = old->encounter_order;
 

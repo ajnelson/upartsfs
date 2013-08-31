@@ -24,9 +24,9 @@
 */
 
 
+/* The length of the partition is stored in st.st_size */
 struct UPARTS_DE_INFO {
     TSK_DADDR_T offset;
-    TSK_DADDR_T length;
     struct stat st;
     uint8_t encounter_order;
     char name[UPARTS_NAME_LENGTH];
