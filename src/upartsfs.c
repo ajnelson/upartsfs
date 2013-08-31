@@ -194,16 +194,10 @@ static int uparts_access(const char *path, int mask)
     return 0;
 }
 
-static int xmp_readlink(const char *path, char *buf, size_t size)
+/* This file system doesn't use soft links */
+static int uparts_readlink(const char *path, char *buf, size_t size)
 {
-    int res;
-
-    res = readlink(path, buf, size - 1);
-    if (res == -1)
-        return -errno;
-
-    buf[res] = '\0';
-    return 0;
+    return -EOPNOTSUPP;
 }
 
 static TSK_WALK_RET_ENUM populate_uparts_by_index(TSK_VS_INFO * vs, const TSK_VS_PART_INFO * part, void *ptr)
@@ -555,7 +549,7 @@ static struct fuse_operations upartsfs_oper = {
     .destroy        = uparts_destroy,
     .getattr        = uparts_getattr,
     .access         = uparts_access,
-    .readlink       = xmp_readlink,
+    .readlink       = uparts_readlink,
     .readdir        = uparts_readdir,
     .mknod          = uparts_mknod,
     .mkdir          = uparts_mkdir,
