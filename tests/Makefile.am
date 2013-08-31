@@ -6,7 +6,9 @@ noinst_PROGRAMS = \
   test_glib \
   test_open
 
-#TODO Add XFAIL_TESTS
+XFAIL_TESTS = \
+  test_open_upartsfs_rw.sh \
+  test_open_upartsfs_w.sh
 
 TESTS = \
   test_glib \
@@ -15,7 +17,7 @@ TESTS = \
   test_mount_upartsfs.sh \
   test_readdir_upartsfs.sh \
   test_open_fusexmp.sh \
-  test_open_upartsfs.sh
+  test_open_upartsfs_r.sh
 
 test_glib_SOURCES = test_glib.c
 test_glib_CFLAGS = $(DEPS_CFLAGS)
@@ -30,4 +32,6 @@ check-valgrind:
 	./test_readdir_upartsfs.sh --with-valgrind || (sleep 0.1s; ./_reset_test.sh ; sleep 0.5s; exit 1)
 
 test_open_fusexmp.sh: test_open
-test_open_upartsfs.sh: test_open
+test_open_upartsfs_r.sh: test_open
+test_open_upartsfs_rw.sh: test_open
+test_open_upartsfs_w.sh: test_open
