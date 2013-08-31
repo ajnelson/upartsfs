@@ -386,31 +386,110 @@ static int uparts_utimens(const char *path, const struct timespec ts[2])
 
 static int uparts_open(const char *path, struct fuse_file_info *fi)
 {
+    struct UPARTS_DE_INFO * ude = NULL;
+    const char * path_numeric_segment = NULL;
+    unsigned int requested_index = 0;
+    off_t requested_offset = 0;
+    char * end_of_strconv = NULL;
+
     /* Disallow requests for non-read-only access.  (A little clunky because O_RDONLY in Linux is 0.) */
     if (fi->flags & (O_WRONLY | O_RDWR | O_CREAT | O_TRUNC | O_APPEND)) {
         fprintf(stderr, "uparts_open(\"%s\", fi->flags=%x): Mode beside O_RDONLY (%x) requested: %x.  Not supported.\n", path, fi->flags, O_RDONLY, fi->flags);
         return -EOPNOTSUPP;
     }
+
+    /* TODO Modularize the code repeated between here and get_attr */
+    /* Look up UPARTS_DE_INFO for requested path */
+    if (strncmp(path, "/in_order/", 10) == 0) {
+        fprintf(stderr, "uparts_open: In /in_order/...\n");
+
+        /* Parse index out of path */
+        path_numeric_segment = path + strlen("/in_order/");
+        requested_index = strtoul(path_numeric_segment, &end_of_strconv, 10);
+        if ('\0' != *end_of_strconv) {
+            fprintf(stderr, "uparts_open: Extra non-numeric characters at end of path: %s.\n", end_of_strconv);
+            return -ENOENT;
+        } else if (ERANGE == errno) {
+            fprintf(stderr, "uparts_open: %s out of range.\n", path_numeric_segment);
+            return -ERANGE;
+        }
+
+        /* Look up corresponding UPARTS_DE_INFO */
+        fprintf(stderr, "uparts_open: About to look up %u from path.\n", requested_index);
+        ude = get_de_info_by_index(requested_index);
+        if (NULL == ude) {
+            fprintf(stderr, "uparts_open: Could not find partition at %u.\n", requested_index);
+            return -ENOENT;
+        }
+
+        /* Stash pointer as the file handle */
+        fi->fh = (uint64_t) ude;
+    } else if (strncmp(path, "/by_offset/", 11) == 0) {
+        fprintf(stderr, "uparts_open: In /by_offset/...\n");
+
+        /* Parse offset out of path */
+        path_numeric_segment = path + strlen("/by_offset/");
+        requested_offset = strtoull(path_numeric_segment, &end_of_strconv, 10);
+        if ('\0' != *end_of_strconv) {
+            fprintf(stderr, "uparts_open: Extra non-numeric characters at end of path: %s.\n", end_of_strconv);
+            return -ENOENT;
+        } else if (ERANGE == errno) {
+            fprintf(stderr, "uparts_open: %s out of range.\n", path_numeric_segment);
+            return -ERANGE;
+        }
+
+        /* Look up corresponding UPARTS_DE_INFO */
+        fprintf(stderr, "uparts_open: About to look up %zu from path.\n", requested_offset);
+        ude = get_de_info_by_offset(requested_offset);
+        if (NULL == ude) {
+            fprintf(stderr, "uparts_open: Could not find partition at %zu.\n", requested_offset);
+            return -ENOENT;
+        }
+
+        /* Stash pointer as the file handle */
+        fi->fh = (uint64_t) ude;
+    } else {
+        fprintf(stderr, "uparts_open: Could not open path '%s'.\n", path);
+        return -ENOENT;
+    }
+    
     return 0;
 }
 
-static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
+static int uparts_read(const char *path, char *buf, size_t size, off_t offset,
             struct fuse_file_info *fi)
 {
-    int fd;
-    int res;
+    fprintf(stderr, "uparts_read(\"%s\", %p, %zd, %zd, %p)\n", path, buf, size, offset, fi);
 
-    (void) fi;
-    fd = open(path, O_RDONLY);
-    if (fd == -1)
-        return -errno;
+    ssize_t res;
+    TSK_OFF_T img_read_offset;
+    TSK_OFF_T part_offset;
+    size_t part_len;
+    struct fuse_context * context;
+    struct UPARTS_EXTRA * uparts_extra;
+    struct UPARTS_DE_INFO * ude;
 
-    res = pread(fd, buf, size, offset);
-    if (res == -1)
-        res = -errno;
+    ude = (struct UPARTS_DE_INFO *) fi->fh;
+    part_offset = ude->offset;
+    part_len = ude->length;
+    
+    context = fuse_get_context();
+    uparts_extra = (struct UPARTS_EXTRA *) context->private_data;
 
-    close(fd);
-    return res;
+    img_read_offset = offset + part_offset;
+
+    if (img_read_offset + size > part_offset + part_len) {
+        fprintf(stderr, "uparts_read: Requested offset and length (%zu, %zu) would read outside the requested partition (image offset %zu, length %zu).\n", offset, size, part_offset, part_len);
+        return -EFAULT;
+    }
+
+    res = tsk_img_read(uparts_extra->tsk_img, img_read_offset, buf, size);
+    if (res == -1) {
+        tsk_error_print(stderr);
+        return -1;
+    }
+
+    return (int) res;
 }
 
 static int uparts_write(const char *path, const char *buf, size_t size,
@@ -559,7 +638,7 @@ static struct fuse_operations upartsfs_oper = {
     .utimens        = uparts_utimens,
 #endif
     .open           = uparts_open,
-    .read           = xmp_read,
+    .read           = uparts_read,
     .write          = uparts_write,
     .statfs         = xmp_statfs,
     .release        = xmp_release,
