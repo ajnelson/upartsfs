@@ -102,6 +102,8 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
         stbuf->st_nlink = 4;
     } else if (strncmp(path, "/in_order/", 10) == 0) {
         fprintf(stderr, "uparts_getattr in /in_order/...\n");
+
+        /* Apply stat defaults */
         stbuf->st_mode = S_IFREG | 0444;
         stbuf->st_nlink = 1;
 
@@ -115,9 +117,9 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
             fprintf(stderr, "uparts_getattr: %s out of range.\n", path_numeric_segment);
             return -ERANGE;
         }
-        fprintf(stderr, "uparts_getattr: About to look up %u from path.\n", requested_index);
     
         /* Look up corresponding UPARTS_DE_INFO */
+        fprintf(stderr, "uparts_getattr: About to look up %u from path.\n", requested_index);
         attrsource = get_de_info_by_index(requested_index);
         if (NULL == attrsource) {
             fprintf(stderr, "uparts_getattr: Could not find partition at %u.\n", requested_index);
@@ -127,8 +129,11 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
         stbuf->st_ino = attrsource->st.st_ino;
     } else if (strncmp(path, "/by_offset/", 11) == 0) {
         fprintf(stderr, "uparts_getattr in /by_offset/...\n");
+
+        /* Apply stat defaults */
         stbuf->st_mode = S_IFREG | 0444;
         stbuf->st_nlink = 1;
+
         /* Parse offset out of path */
         path_numeric_segment = path + strlen("/by_offset/");
         requested_offset = strtoull(path_numeric_segment, &end_of_strconv, 10);
@@ -139,8 +144,9 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
             fprintf(stderr, "uparts_getattr: %s out of range.\n", path_numeric_segment);
             return -ERANGE;
         }
-        fprintf(stderr, "uparts_getattr: About to look up %zu from path.\n", requested_offset);
     
+        /* Look up corresponding UPARTS_DE_INFO */
+        fprintf(stderr, "uparts_getattr: About to look up %zu from path.\n", requested_offset);
         attrsource = get_de_info_by_offset(requested_offset);
         if (NULL == attrsource) {
             fprintf(stderr, "uparts_getattr: Could not find partition at %zu.\n", requested_offset);
