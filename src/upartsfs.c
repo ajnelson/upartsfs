@@ -176,15 +176,20 @@ static int uparts_getattr(const char *path, struct stat *stbuf)
     return 0;
 }
 
-static int xmp_access(const char *path, int mask)
+static int uparts_access(const char *path, int mask)
 {
-    fprintf(stderr, "xmp_access(\"%s\", %o)\n", path, mask);
-    int res;
+    fprintf(stderr, "uparts_access(\"%s\", %o)\n", path, mask);
 
-    res = access(path, mask);
-    fprintf(stderr, "xmp_access: res = %d\n", res);
-    if (res == -1)
-        return -errno;
+    /* No writes.  Period. */
+    if (mask & W_OK)
+        return -EROFS;
+
+    /* Only execute directories */
+    if (mask & X_OK) {
+        if (strncmp(path, "/by_offset", 10) != 0 &&
+          strncmp(path, "/in_order", 9) != 0 )
+            return -EACCES;
+    }
 
     return 0;
 }
@@ -549,7 +554,7 @@ static struct fuse_operations upartsfs_oper = {
     .init           = uparts_init,
     .destroy        = uparts_destroy,
     .getattr        = uparts_getattr,
-    .access         = xmp_access,
+    .access         = uparts_access,
     .readlink       = xmp_readlink,
     .readdir        = uparts_readdir,
     .mknod          = uparts_mknod,
