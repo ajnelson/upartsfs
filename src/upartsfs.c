@@ -377,8 +377,9 @@ static int xmp_utimens(const char *path, const struct timespec ts[2])
 
 static int uparts_open(const char *path, struct fuse_file_info *fi)
 {
-    if (! (fi->flags & O_RDONLY) ) {
-        fprintf(stderr, "uparts_open(\"%s\", fi->flags=%x): Mode beside O_RDONLY (%x) requested.  Not supported.\n", path, fi->flags, O_RDONLY);
+    /* Disallow requests for non-read-only access.  (A little clunky because O_RDONLY in Linux is 0.) */
+    if (fi->flags & (O_WRONLY | O_RDWR | O_CREAT | O_TRUNC | O_APPEND)) {
+        fprintf(stderr, "uparts_open(\"%s\", fi->flags=%x): Mode beside O_RDONLY (%x) requested: %x.  Not supported.\n", path, fi->flags, O_RDONLY, fi->flags);
         return -EOPNOTSUPP;
     }
     return 0;
