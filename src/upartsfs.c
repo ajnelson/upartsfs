@@ -377,16 +377,10 @@ static int uparts_truncate(const char *path, off_t size)
 }
 
 #ifdef HAVE_UTIMENSAT
-static int xmp_utimens(const char *path, const struct timespec ts[2])
+/* This file system does not allow changing timestamps */
+static int uparts_utimens(const char *path, const struct timespec ts[2])
 {
-    int res;
-
-    /* don't use utime/utimes since they follow symlinks */
-    res = utimensat(0, path, ts, AT_SYMLINK_NOFOLLOW);
-    if (res == -1)
-        return -errno;
-
-    return 0;
+    return -EOPNOTSUPP;
 }
 #endif
 
@@ -562,7 +556,7 @@ static struct fuse_operations upartsfs_oper = {
     .chown          = uparts_chown,
     .truncate       = uparts_truncate,
 #ifdef HAVE_UTIMENSAT
-    .utimens        = xmp_utimens,
+    .utimens        = uparts_utimens,
 #endif
     .open           = uparts_open,
     .read           = xmp_read,
