@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+/* #include <sys/statvfs.h> TODO Include statvfs.h when the symbol resolution issues from _statfs are resolvable. */
 #include <dirent.h>
 #include <errno.h>
 #include <sys/time.h>
@@ -513,6 +514,19 @@ static int xmp_statfs(const char *path, struct statvfs *stbuf)
         return -errno;
 
     return 0;
+
+    /* Fields c/o: man statvfs */
+    stbuf->f_bsize = 512; /* TODO Maybe this should inherit something from TSK's image info. */
+    stbuf->f_frsize = stbuf->f_bsize; /* TODO Look up difference between fragment size and block size */
+    //stbuf->f_blocks = ; /* TODO Use the image size */
+    stbuf->f_bfree = 0;
+    stbuf->f_bavail = 0;
+    //stbuf->f_files = ; /* TODO Use the length of the by_offset list */
+    stbuf->f_ffree = 0;
+    stbuf->f_favail = 0;
+    stbuf->f_fsid = 0; /* It's unlikely to get a sensible, generic id here. */
+    /* Flags drawn from statvfs.h on an Ubuntu 13.04 system; hopefully this doesn't vary much. (TODO sys/statvfs.h doesn't seem to catch the symbols.)*/
+    /*stbuf->f_flag = ST_RDONLY | ST_NOSUID | ST_NODEV | ST_NOEXEC | ST_IMMUTABLE | ST_NOATIME | ST_NODIRATIME;*/
 }
 
 static int uparts_release(const char *path, struct fuse_file_info *fi)
