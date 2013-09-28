@@ -491,6 +491,11 @@ static int uparts_read(const char *path, char *buf, size_t size, off_t offset,
         fprintf(stderr, "uparts_read: Warning: Requested offset and length (%zu, %zu) would read outside the requested partition (image offset %zu, length %zu).  Trimmed request to read %zu bytes.\n", offset, size, part_offset, part_len, img_read_length);
     }
 
+    if (img_read_length == 0) {
+        fprintf(stderr, "uparts_read: Note: Requested length is 0.  Returning.\n");
+        return 0;
+    }
+
     res = tsk_img_read(uparts_extra->tsk_img, img_read_offset, buf, img_read_length);
     if (res == -1) {
         tsk_error_print(stderr);
