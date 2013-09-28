@@ -14,7 +14,7 @@ fi
 MMCAT=../deps/sleuthkit/build/bin/mmcat
 test -x "$MMCAT"
 
-MD5COMM="md5sum -"
+MD5COMM="openssl dgst -md5"
 
 mkdir test
 ${VALGRIND_COMMAND} $top_srcdir/src/upartsfs test "$IMAGEFILE"
