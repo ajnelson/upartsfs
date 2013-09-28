@@ -187,7 +187,8 @@ static int uparts_access(const char *path, int mask)
 
     /* Only execute directories */
     if (mask & X_OK) {
-        if (strncmp(path, "/by_offset", 10) != 0 &&
+        if (strncmp(path, "/", 2) != 0 &&
+          strncmp(path, "/by_offset", 10) != 0 &&
           strncmp(path, "/in_order", 9) != 0 )
             return -EACCES;
     }
