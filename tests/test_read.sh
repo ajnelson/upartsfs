@@ -19,6 +19,11 @@ MD5COMM="openssl dgst -md5"
 mkdir test
 ${VALGRIND_COMMAND} $top_srcdir/src/upartsfs test "$IMAGEFILE"
 
+#A quick test: Ensure the directories are accessible
+#TODO Maybe this should be another test script...
+pushd test
+popd
+
 for part_index_path in $(ls test/in_order); do
   part_index=$(basename "$part_index_path")
   from_uparts=$(cat "test/in_order/$part_index" | $MD5COMM)
