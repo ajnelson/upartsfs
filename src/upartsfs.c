@@ -754,6 +754,11 @@ int main(int main_argc, char *main_argv[])
     struct UPARTS_DE_INFO *ude;
     GList *partition_list = NULL;
 
+    if (main_argc == 1) {
+        fprintf(stderr, "Usage: %s [fuse_opts] mount_point disk_image\n", main_argv[0]);
+        exit(1);
+    }
+
     /*
      * Specify we are looking for ~data partitions - which seems to translate to not-metadata partitions.
      * Why: A Mac partition table had two "Partitions" at the same offset, causing some ambiguity.
