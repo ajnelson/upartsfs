@@ -27,6 +27,7 @@ From poking around on Github, I found these projects do close to the same thing,
 
 * https://github.com/andreax79/partsfs - Basically the project I want to write, except it's a Linux kernel module, and uses its own partition table parsers.  I'd like FUSE for use in other OS's.
 * http://code.google.com/p/libewf/wiki/Mounting - `ewfmount` presents a whole "raw" disk image stored in E01 format, but does no interpretation of the image's contents.
+* vdfuse - VirtualBox-based partition-presenting FUSE file system. Meets some of the output goals of this project, with an included VirtualBox format bridge.  From a documentation skim, it appears to be a merge of a virtual block device and a partition table interpreter.  It is unclear what version of the tool one would want to use, though.  [Here's one](https://github.com/jonathanxavier/vdfuse) that claims heavy hacking from the upstream version, and [a fork with bug fixes](https://github.com/SophosLabs/vdfuse).  I haven't inspected what the partition parser is, though I assume it's whatever the running kernel uses, as the real heavy lifting of this code would have to be a virtual block device.  According to the SophosLabs README, it appears to balk at multi-thread access to a partition or the whole disk -- an artifact of VirtualBox's API?
 
 
 Project status
