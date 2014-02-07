@@ -25,6 +25,7 @@ From poking around on Github, I found these projects do close to the same thing,
 
 * https://github.com/andreax79/partsfs - Basically the project I want to write, except it's a Linux kernel module, and uses its own partition table parsers.  I'd like FUSE for use in other OS's.
 * http://code.google.com/p/libewf/wiki/Mounting - `ewfmount` presents a whole "raw" disk image stored in E01 format, but does no interpretation of the image's contents.
+* [xmount](https://www.pinguin.lu/index.php) - another disk image mounting utility.  Capable of handling some of the non-forensic disk image formats, including VM formats.  Has a writable-mount mode, using a cache file.  Does not interpret disk contents, so is otherwise like an extended `affuse` and `ewfmount`.
 
 
 Project status
