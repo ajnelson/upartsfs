@@ -220,6 +220,12 @@ static TSK_WALK_RET_ENUM populate_uparts_by_index(TSK_VS_INFO * vs, const TSK_VS
         return TSK_WALK_ERROR;
     }
 
+    /* Skip unallocated areas */
+    if (part->flags & TSK_VS_PART_FLAG_UNALLOC) {
+        fprintf(stderr, "populate_uparts_by_index: Skipping partition flagged as unallocated.\n");
+        return TSK_WALK_CONT;
+    }
+
     /* Populate new list tail data */
     new_tail_position = ((unsigned int) g_list_length(uparts_extra->stats_by_index));
     new_tail_data->encounter_order = new_tail_position;
