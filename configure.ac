@@ -25,6 +25,12 @@ AC_CHECK_LIB([ulockmgr], [main])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h string.h sys/time.h unistd.h])
+
+#Update PKG_CONFIG_PATH
+# OSXFUSE puts a couple pkgconfig files into /usr/local/lib/pkgconfig.  For some reason, that directory is not in the pkgconfig's search path.
+# This SO answer rec'd updating the path: http://stackoverflow.com/a/10229811
+# The sufficient export command is c/o SSHFS's configure.ac.
+export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
 PKG_CHECK_MODULES(
   [FUSE],
   [fuse],
