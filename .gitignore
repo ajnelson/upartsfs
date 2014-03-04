@@ -47,3 +47,5 @@ m4
 missing
 stamp-h1
 test-driver
+tests/*.log
+tests/*.trs
