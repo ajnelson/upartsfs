@@ -6,6 +6,6 @@ LDFLAGS += -static
 noinst_PROGRAMS = fusexmp loggedfs
 bin_PROGRAMS = upartsfs
 
-fusexmp_SOURCES = loggedfs.c
+loggedfs_SOURCES = loggedfs.c
 fusexmp_SOURCES = fusexmp.c
 upartsfs_SOURCES = upartsfs.c upartsfs.h unconfig.h
