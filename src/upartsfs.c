@@ -849,21 +849,20 @@ int main(int main_argc, char *main_argv[])
         exit(1);
     }
 
-    /* Debug */
-    fprintf(stderr, "main: Debug: Partitions and offsets by index:\n");
-    for (partition_list = uparts_extra->stats_by_index;
-         partition_list != NULL;
-         partition_list = partition_list->next) {
-        ude = partition_list->data;
-        fprintf(stderr, "\t%" PRIu8 "\t%s\n", ude->encounter_order, ude->name);
-        
-    }
-
     /* Walk in-table-order partition list to generate by-offset partition list */
     if (populate_uparts_by_offset(uparts_extra)) {
         fprintf(stderr, "main: populate_uparts_by_offset failed.\n");
         free_uparts_extra(uparts_extra);
         exit(1);
+    }
+
+    /* Debug */
+    fprintf(stderr, "main: Debug: Partitions and offsets by index:\n");
+    for (partition_list = uparts_extra->stats_by_offset;
+         partition_list != NULL;
+         partition_list = partition_list->next) {
+        ude = partition_list->data;
+        fprintf(stderr, "\t%" PRIu8 "\t%s\n", ude->encounter_order, ude->name);
     }
 
     umask(0);
